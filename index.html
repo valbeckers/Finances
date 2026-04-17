@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -298,16 +299,33 @@
   }
 
   /* ── CELL INPUTS (tableau éditable) ── */
-  .cell-input {
-    background: transparent; border: none; border-bottom: 1px solid var(--border2);
-    color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px;
-    padding: 4px 2px; width: 80px; text-align: right; outline: none;
-    border-radius: 0; transition: border-color .15s;
+  .cell-wrap {
+    display: inline-flex; align-items: center; gap: 2px;
+    border-bottom: 1px solid var(--border2); transition: border-color .15s;
   }
-  .cell-input:focus { border-bottom-color: var(--accent); color: var(--text); }
-  .cell-input::placeholder { color: var(--text3); }
+  .cell-wrap:focus-within { border-bottom-color: var(--accent); }
+  .cell-wrap.cell-red { border-bottom-color: rgba(248,113,113,0.3); }
+  .cell-wrap.cell-red:focus-within { border-bottom-color: var(--red); }
+  .cell-input {
+    background: transparent; border: none;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px;
+    padding: 4px 0 4px 2px; width: 68px; text-align: right; outline: none;
+    border-radius: 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .cell-input::-webkit-outer-spin-button,
+  .cell-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
   .cell-input.cell-red { color: var(--red); }
-  .cell-input.cell-red:focus { color: var(--red); }
+  .cell-input::placeholder { color: var(--text3); }
+  .cell-euro {
+    font-family: 'Inter', sans-serif; font-size: 11px;
+    color: var(--text3); padding: 4px 2px 4px 0; user-select: none;
+  }
+  .cell-wrap.cell-red .cell-euro { color: var(--red); opacity: .6; }
 
 
   /* ── FIXED TOP HEADER ── */
@@ -392,10 +410,11 @@
     <div class="section-title" style="margin-top:20px">📊 Évolution</div>
     <div class="card" style="padding:16px 12px">
       <div class="pill-tabs" id="chart-pills" style="margin-bottom:10px;gap:5px">
-        <div class="pill-tab active" onclick="switchChart('epPerso',this)">Épargne perso</div>
-        <div class="pill-tab" onclick="switchChart('epCouple',this)">Épargne couple</div>
-        <div class="pill-tab" onclick="switchChart('bourse',this)">Bourse</div>
-        <div class="pill-tab" onclick="switchChart('exotique',this)">Exotique</div>
+        <div class="pill-tab active" onclick="switchChart('all',this)">Tout</div>
+        <div class="pill-tab" onclick="switchChart('epPerso',this)">💰 Perso</div>
+        <div class="pill-tab" onclick="switchChart('epCouple',this)">👫 Couple</div>
+        <div class="pill-tab" onclick="switchChart('bourse',this)">📈 Bourse</div>
+        <div class="pill-tab" onclick="switchChart('exotique',this)">₿ Exotique</div>
       </div>
       <canvas id="home-chart" height="110"></canvas>
     </div>
@@ -642,7 +661,7 @@
             <th>Brut</th>
             <th>Net av. imp.</th>
             <th>Impôts</th>
-            <th>Net net</th>
+            <th>Net net (=)</th>
             <th>Tickets R.</th>
             <th>Autre</th>
           </tr>
@@ -669,7 +688,7 @@
           <tr>
             <th>Année</th>
             <th>Brut</th>
-            <th>Net net</th>
+            <th>Net net (=)</th>
             <th>Impôts</th>
             <th>Ratio B/NN</th>
             <th>Mensuel moy.</th>
@@ -1280,12 +1299,12 @@ function renderEpargne() {
     const tot = EP_KEYS.reduce((s,key) => s+(parseFloat(d[key])||0), 0);
     annualRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
-      <td><input class="cell-input" data-month="${k}" data-key="antid" type="number" value="${d.antid||''}" placeholder="—" step="0.01" onchange="saveEpargneCell(this)"></td>
-      <td><input class="cell-input" data-month="${k}" data-key="prec"  type="number" value="${d.prec||''}"  placeholder="—" step="0.01" onchange="saveEpargneCell(this)"></td>
-      <td><input class="cell-input" data-month="${k}" data-key="secu"  type="number" value="${d.secu||''}"  placeholder="—" step="0.01" onchange="saveEpargneCell(this)"></td>
-      <td><input class="cell-input" data-month="${k}" data-key="vcelia" type="number" value="${d.vcelia||''}" placeholder="—" step="0.01" onchange="saveEpargneCell(this)"></td>
-      <td><input class="cell-input" data-month="${k}" data-key="vval"  type="number" value="${d.vval||''}"  placeholder="—" step="0.01" onchange="saveEpargneCell(this)"></td>
-      <td><input class="cell-input" data-month="${k}" data-key="vac"   type="number" value="${d.vac||''}"   placeholder="—" step="0.01" onchange="saveEpargneCell(this)"></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="antid" type="number" value="${d.antid||''}" placeholder="—" step="0.01" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="prec"  type="number" value="${d.prec||''}"  placeholder="—" step="0.01" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="secu"  type="number" value="${d.secu||''}"  placeholder="—" step="0.01" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vcelia" type="number" value="${d.vcelia||''}" placeholder="—" step="0.01" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vval"  type="number" value="${d.vval||''}"  placeholder="—" step="0.01" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vac"   type="number" value="${d.vac||''}"   placeholder="—" step="0.01" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td class="${tot>0?'td-purple':''}" id="ep-tot-${k}">${tot>0?fmt(tot,0):'—'}</td>
     </tr>`;
   }
@@ -1324,10 +1343,10 @@ function renderCredits() {
     const tot = CR_KEYS.reduce((s,key) => s+(parseFloat(d[key])||0), 0);
     hRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
-      <td><input class="cell-input cell-red" data-month="${k}" data-key="immo"    type="number" value="${d.immo||''}"    placeholder="—" step="0.01" onchange="saveCreditCell(this)"></td>
-      <td><input class="cell-input cell-red" data-month="${k}" data-key="sandra"  type="number" value="${d.sandra||''}"  placeholder="—" step="0.01" onchange="saveCreditCell(this)"></td>
-      <td><input class="cell-input cell-red" data-month="${k}" data-key="polt"    type="number" value="${d.polt||''}"    placeholder="—" step="0.01" onchange="saveCreditCell(this)"></td>
-      <td><input class="cell-input cell-red" data-month="${k}" data-key="schmidt" type="number" value="${d.schmidt||''}" placeholder="—" step="0.01" onchange="saveCreditCell(this)"></td>
+      <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="immo"    type="number" value="${d.immo||''}"    placeholder="—" step="0.01" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="sandra"  type="number" value="${d.sandra||''}"  placeholder="—" step="0.01" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="polt"    type="number" value="${d.polt||''}"    placeholder="—" step="0.01" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="schmidt" type="number" value="${d.schmidt||''}" placeholder="—" step="0.01" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
       <td class="${tot>0?'td-red':''}" id="cr-tot-${k}">${tot>0?fmt(tot,0):'—'}</td>
     </tr>`;
   }
@@ -1669,43 +1688,93 @@ function saveExoTx() {
 }
 
 // ─── REVENUS ─────────────────────────────────
+function calcNN(d) {
+  const nav = parseFloat(d.nav)||0;
+  const imp = parseFloat(d.imp)||0;
+  const nn  = nav - imp;
+  return nn > 0 ? fmt(nn, 0) : (nav > 0 ? fmt(nn, 0) : '—');
+}
 function renderRevenus() {
   const year = parseInt($('rev-year-sel').value);
+  const REV_KEYS = ['brut','nav','imp','nn','tr','autre'];
 
-  // Monthly table
   let totBrut=0, totNav=0, totImp=0, totNn=0, totTr=0, totAutre=0;
   let rows = '';
+
   for (let m = 0; m < 12; m++) {
     const k = monthKey(year, m);
     const d = revData[k] || {};
-    const brut  = parseFloat(d.brut)||0;
-    const nav   = parseFloat(d.nav)||0;
-    const imp   = parseFloat(d.imp)||0;
-    const nn    = parseFloat(d.nn)||0;
-    const tr    = parseFloat(d.tr)||0;
-    const autre = parseFloat(d.autre)||0;
-    totBrut += brut; totNav += nav; totImp += imp;
-    totNn += nn; totTr += tr; totAutre += autre;
-    const has = brut > 0 || nn > 0;
+    totBrut += parseFloat(d.brut)||0;
+    totNav  += parseFloat(d.nav)||0;
+    totImp  += parseFloat(d.imp)||0;
+    totNn   += parseFloat(d.nn)||0;
+    totTr   += parseFloat(d.tr)||0;
+    totAutre+= parseFloat(d.autre)||0;
+
     rows += `<tr>
-      <td>${MONTHS_SHORT[m]}</td>
-      <td>${has?fmt(brut,0):'—'}</td>
-      <td>${has?fmt(nav,0):'—'}</td>
-      <td class="${imp>0?'td-red':''}">${has?fmt(imp,0):'—'}</td>
-      <td class="td-green">${has?fmt(nn,0):'—'}</td>
-      <td>${has?fmt(tr,0):'—'}</td>
-      <td>${has?fmt(autre,0):'—'}</td>
+      <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="brut"  type="number" value="${d.brut||''}"  placeholder="—" step="0.01" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="nav"   type="number" value="${d.nav||''}"   placeholder="—" step="0.01" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="imp"   type="number" value="${d.imp||''}"   placeholder="—" step="0.01" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td class="td-green" id="rev-nn-${k}" style="font-size:12px">${calcNN(d)}</td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="tr"    type="number" value="${d.tr||''}"    placeholder="—" step="0.01" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="autre" type="number" value="${d.autre||''}" placeholder="—" step="0.01" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
     </tr>`;
   }
   $('rev-tbody').innerHTML = rows;
-  $('rev-tot-brut').textContent = fmt(totBrut, 0);
-  $('rev-tot-nav').textContent  = fmt(totNav, 0);
-  $('rev-tot-imp').textContent  = fmt(totImp, 0);
-  $('rev-tot-nn').textContent   = fmt(totNn, 0);
-  $('rev-tot-tr').textContent   = fmt(totTr, 0);
-  $('rev-tot-autre').textContent= fmt(totAutre, 0);
 
-  // Summary cards for current year
+  updateRevTotals(year);
+  updateRevSummary(year);
+  updateRevAnnual();
+}
+
+function saveRevenuCell(input) {
+  const k   = input.dataset.month;
+  const key = input.dataset.key;
+  if (!revData[k]) revData[k] = {};
+  revData[k][key] = input.value;
+  // Auto-compute nn = nav - imp
+  const nav = parseFloat(revData[k].nav)||0;
+  const imp = parseFloat(revData[k].imp)||0;
+  revData[k].nn = (nav - imp).toFixed(2);
+  // Update nn display cell
+  const nnCell = $('rev-nn-' + k);
+  if (nnCell) nnCell.textContent = calcNN(revData[k]);
+  save('rev_data', revData);
+  const year = parseInt(k.split('-')[0]);
+  updateRevTotals(year);
+  updateRevSummary(year);
+  updateRevAnnual();
+}
+
+function updateRevTotals(year) {
+  let totBrut=0, totNav=0, totImp=0, totNn=0, totTr=0, totAutre=0;
+  for (let m=0; m<12; m++) {
+    const d = revData[monthKey(year,m)] || {};
+    totBrut += parseFloat(d.brut)||0;
+    totNav  += parseFloat(d.nav)||0;
+    totImp  += parseFloat(d.imp)||0;
+    totNn   += (parseFloat(d.nav)||0) - (parseFloat(d.imp)||0);
+    totTr   += parseFloat(d.tr)||0;
+    totAutre+= parseFloat(d.autre)||0;
+  }
+  $('rev-tot-brut').textContent  = fmt(totBrut, 0);
+  $('rev-tot-nav').textContent   = fmt(totNav, 0);
+  $('rev-tot-imp').textContent   = fmt(totImp, 0);
+  $('rev-tot-nn').textContent    = fmt(totNn, 0);
+  $('rev-tot-tr').textContent    = fmt(totTr, 0);
+  $('rev-tot-autre').textContent = fmt(totAutre, 0);
+  return {totBrut, totNn, totImp};
+}
+
+function updateRevSummary(year) {
+  let totBrut=0, totNn=0, totImp=0;
+  for (let m=0; m<12; m++) {
+    const d = revData[monthKey(year,m)] || {};
+    totBrut += parseFloat(d.brut)||0;
+    totNn   += (parseFloat(d.nav)||0) - (parseFloat(d.imp)||0);
+    totImp  += parseFloat(d.imp)||0;
+  }
   const ratio = totBrut > 0 ? (totNn/totBrut*100).toFixed(1) : '—';
   $('rev-summary-cards').innerHTML = `
     <div class="rev-summary">
@@ -1714,8 +1783,9 @@ function renderRevenus() {
       <div class="rev-box"><div class="rev-box-label">Impôts</div><div class="rev-box-val td-red">${fmt(totImp,0)}</div></div>
       <div class="rev-box"><div class="rev-box-label">Ratio B→NN</div><div class="rev-box-val">${ratio}%</div></div>
     </div>`;
+}
 
-  // Annual recap
+function updateRevAnnual() {
   const now = new Date();
   let aRows = '';
   for (let y = now.getFullYear(); y >= 2020; y--) {
@@ -1723,10 +1793,10 @@ function renderRevenus() {
     for (let m=0; m<12; m++) {
       const d = revData[monthKey(y,m)] || {};
       yBrut += parseFloat(d.brut)||0;
-      yNn   += parseFloat(d.nn)||0;
+      yNn   += (parseFloat(d.nav)||0) - (parseFloat(d.imp)||0);
       yImp  += parseFloat(d.imp)||0;
     }
-    const yRatio = yBrut > 0 ? (yNn/yBrut*100).toFixed(1)+'%' : '—';
+    const yRatio  = yBrut > 0 ? (yNn/yBrut*100).toFixed(1)+'%' : '—';
     const mensuel = yNn > 0 ? fmt(yNn/12, 0) : '—';
     const horaire = yNn > 0 ? fmt(yNn/(12*160.33), 2) : '—';
     aRows += `<tr>
@@ -1768,7 +1838,7 @@ function saveRevenu() {
 
 // ─── CHART ACCUEIL ───────────────────────────
 let homeChart = null;
-let currentChartType = 'epPerso';
+let currentChartType = 'all';
 
 const CHART_COLORS = {
   epPerso:  '#7c6af7',
@@ -1784,75 +1854,112 @@ function switchChart(type, el) {
   renderHomeChart();
 }
 
+function getMonthValues(k) {
+  const ep  = epargneData[k] || {};
+  const bo  = boursePerf[k]  || {};
+  const exo = exoPerf[k]     || {};
+  return {
+    epPerso:  (parseFloat(ep.antid)||0)+(parseFloat(ep.secu)||0)+(parseFloat(ep.vval)||0)+(parseFloat(ep.vac)||0),
+    epCouple: (parseFloat(ep.prec)||0)+(parseFloat(ep.vcelia)||0),
+    bourse:   (parseFloat(bo.peaEtfVal)||0)+(parseFloat(bo.percoVal)||0),
+    exotique: (parseFloat(exo.btcVal)||0)+(parseFloat(exo.orVal)||0),
+  };
+}
+
 function renderHomeChart() {
   const canvas = $('home-chart');
   if (!canvas) return;
 
-  // Build last 12 months labels + values
   const now = new Date();
   const labels = [];
-  const values = [];
+  const monthKeys = [];
 
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const k = monthKey(d.getFullYear(), d.getMonth());
     labels.push(MONTHS_SHORT[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
-
-    let val = 0;
-    if (currentChartType === 'epPerso') {
-      const ep = epargneData[k] || {};
-      val = (parseFloat(ep.antid)||0) + (parseFloat(ep.secu)||0) + (parseFloat(ep.vval)||0) + (parseFloat(ep.vac)||0);
-    } else if (currentChartType === 'epCouple') {
-      const ep = epargneData[k] || {};
-      val = (parseFloat(ep.prec)||0) + (parseFloat(ep.vcelia)||0);
-    } else if (currentChartType === 'bourse') {
-      const bo = boursePerf[k] || {};
-      val = (parseFloat(bo.peaEtfVal)||0) + (parseFloat(bo.percoVal)||0);
-    } else if (currentChartType === 'exotique') {
-      const exo = exoPerf[k] || {};
-      val = (parseFloat(exo.btcVal)||0) + (parseFloat(exo.orVal)||0);
-    }
-    values.push(val);
+    monthKeys.push(k);
   }
 
-  const color = CHART_COLORS[currentChartType];
+  let datasets = [];
+
+  if (currentChartType === 'all') {
+    // Vue globale : une courbe par catégorie + une courbe total
+    const series = { epPerso: [], epCouple: [], bourse: [], exotique: [], total: [] };
+    monthKeys.forEach(k => {
+      const v = getMonthValues(k);
+      series.epPerso.push(v.epPerso);
+      series.epCouple.push(v.epCouple);
+      series.bourse.push(v.bourse);
+      series.exotique.push(v.exotique);
+      series.total.push(v.epPerso + v.epCouple + v.bourse + v.exotique);
+    });
+    datasets = [
+      { label: 'Total',        data: series.total,    borderColor: '#ffffff', backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 2, pointRadius: 2, pointHoverRadius: 5, fill: false, tension: 0.35, borderDash: [4,3] },
+      { label: '💰 Perso',    data: series.epPerso,  borderColor: '#7c6af7', backgroundColor: 'rgba(124,106,247,0.08)', borderWidth: 1.5, pointRadius: 2, pointHoverRadius: 4, fill: false, tension: 0.35 },
+      { label: '👫 Couple',   data: series.epCouple, borderColor: '#3ecf8e', backgroundColor: 'rgba(62,207,142,0.08)',  borderWidth: 1.5, pointRadius: 2, pointHoverRadius: 4, fill: false, tension: 0.35 },
+      { label: '📈 Bourse',   data: series.bourse,   borderColor: '#1a8fff', backgroundColor: 'rgba(26,143,255,0.08)', borderWidth: 1.5, pointRadius: 2, pointHoverRadius: 4, fill: false, tension: 0.35 },
+      { label: '₿ Exotique', data: series.exotique,  borderColor: '#f5c842', backgroundColor: 'rgba(245,200,66,0.08)', borderWidth: 1.5, pointRadius: 2, pointHoverRadius: 4, fill: false, tension: 0.35 },
+    ];
+  } else {
+    const values = monthKeys.map(k => getMonthValues(k)[currentChartType]);
+    const color  = CHART_COLORS[currentChartType];
+    const labelMap = { epPerso:'💰 Épargne perso', epCouple:'👫 Épargne couple', bourse:'📈 Bourse', exotique:'₿ Exotique' };
+    datasets = [{
+      label: labelMap[currentChartType],
+      data: values,
+      borderColor: color,
+      backgroundColor: color + '22',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHoverRadius: 5,
+      fill: true,
+      tension: 0.35,
+    }];
+  }
+
+  const fmtEur = v => new Intl.NumberFormat('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(v) + ' €';
 
   if (homeChart) homeChart.destroy();
   homeChart = new Chart(canvas, {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        borderColor: color,
-        backgroundColor: color + '22',
-        borderWidth: 2,
-        pointBackgroundColor: color,
-        pointRadius: 2,
-        pointHoverRadius: 4,
-        fill: true,
-        tension: 0.35,
-      }]
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      interaction: {
+        mode: 'index',       // affiche tous les datasets au même point x
+        intersect: false,    // déclenché au survol/doigt sans avoir à toucher exactement un point
+      },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: currentChartType === 'all',
+          labels: {
+            color: '#9090a8',
+            font: { family: 'Inter', size: 10 },
+            boxWidth: 12, padding: 10,
+            usePointStyle: true, pointStyle: 'circle',
+          }
+        },
         tooltip: {
+          mode: 'index',
+          intersect: false,
           callbacks: {
-            label: ctx => ' ' + new Intl.NumberFormat('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(ctx.parsed.y) + ' €'
+            title: items => items[0]?.label || '',
+            label: ctx => ' ' + ctx.dataset.label + ' : ' + fmtEur(ctx.parsed.y),
           },
           backgroundColor: '#1c1c26',
-          borderColor: 'rgba(255,255,255,0.1)',
+          borderColor: 'rgba(255,255,255,0.12)',
           borderWidth: 1,
-          titleColor: '#9090a8',
-          bodyColor: '#e8e8f0',
+          titleColor: '#e8e8f0',
+          bodyColor: '#9090a8',
+          padding: 10,
+          caretSize: 5,
         }
       },
       scales: {
         x: {
-          ticks: { color: '#5a5a72', font: { family: 'Inter', size: 10 } },
+          ticks: { color: '#5a5a72', font: { family: 'Inter', size: 9 } },
           grid: { color: 'rgba(255,255,255,0.04)' },
           border: { display: false }
         },
@@ -1861,7 +1968,7 @@ function renderHomeChart() {
             color: '#5a5a72',
             font: { family: 'Inter', size: 9 },
             maxTicksLimit: 4,
-            callback: v => v === 0 ? '0' : (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) + ' €'
+            callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k€' : v+'€'
           },
           grid: { color: 'rgba(255,255,255,0.04)' },
           border: { display: false }
