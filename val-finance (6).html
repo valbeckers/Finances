@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1198,14 +1199,15 @@ function renderAccueil() {
   const now = new Date();
   const hd = $('home-date'); if(hd) hd.textContent = `— ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
 
-  function latestKey(data) {
-    const keys = Object.keys(data).sort();
-    return keys.length ? keys[keys.length - 1] : null;
+  // ── Épargne : dernier mois avec au moins une valeur non nulle ──
+  const EP_KEYS = ['antid','prec','secu','vcelia','vval','vac'];
+  const epKeys = Object.keys(epargneData).sort();
+  let ep = {};
+  for (let i = epKeys.length - 1; i >= 0; i--) {
+    const d = epargneData[epKeys[i]];
+    const tot = EP_KEYS.reduce((s,k) => s + (parseFloat(d[k])||0), 0);
+    if (tot > 0) { ep = d; break; }
   }
-
-  // ── Épargne ──
-  const epKey = latestKey(epargneData);
-  const ep = epKey ? epargneData[epKey] : {};
   const coupleVal = (parseFloat(ep.prec)||0) + (parseFloat(ep.vcelia)||0);
   const persoVal  = (parseFloat(ep.antid)||0) + (parseFloat(ep.secu)||0) + (parseFloat(ep.vval)||0) + (parseFloat(ep.vac)||0);
 
@@ -1221,38 +1223,48 @@ function renderAccueil() {
     rowWithLogo(LOGO_REVOLUT, 'Épargne voiture',                  fmt(ep.vval||0,2)) +
     rowWithLogo(LOGO_REVOLUT, 'Épargne vacances',                 fmt(ep.vac||0,2));
 
-  // ── Bourse ──
-  const boKey = latestKey(boursePerf);
-  const bo = boKey ? boursePerf[boKey] : {};
-  const peaEtfVal  = parseFloat(bo.peaEtfVal)||0;
-  const percoVal2  = parseFloat(bo.percoVal)||0;
-  const boursePerfTotal = peaEtfVal + percoVal2;
-  const boursePerfInv   = (parseFloat(bo.peaEtfInv)||0) + (parseFloat(bo.percoInv)||0);
-  const bDelta = boursePerfTotal - boursePerfInv;
+  // ── Bourse : depuis le portefeuille (positions actuelles) ──
+  // Grouper par support
+  const peaPositions  = boursePos.filter(p => p.support === 'PEA');
+  const percoPositions = boursePos.filter(p => p.support === 'PERCO');
+  const peaVal   = peaPositions.reduce((s,p)  => s + (parseFloat(p.valeur)||0), 0);
+  const percoVal = percoPositions.reduce((s,p) => s + (parseFloat(p.valeur)||0), 0);
+  const bourseTotal = peaVal + percoVal;
 
-  $('home-bourse-val').textContent = fmt(boursePerfTotal || boursePos.reduce((s,p)=>s+(parseFloat(p.valeur)||0),0), 2);
+  // Coût total depuis transactions pour calculer delta
+  const bourseCout = bourseTx.reduce((s,t) => {
+    const m = parseFloat(t.montant)||0;
+    return t.op === 'Achat' ? s + m : s - m;
+  }, 0);
+  const bourseDelta = bourseTotal > 0 && bourseCout > 0 ? bourseTotal - bourseCout : null;
+
+  $('home-bourse-val').textContent = fmt(bourseTotal, 2);
   $('home-bourse-rows').innerHTML =
-    rowWithLogo(LOGO_TR,      'PEA — ETF',    fmt(peaEtfVal,2)) +
-    rowWithLogo(LOGO_NATIXIS, 'PERCO — FCPE', fmt(percoVal2,2)) +
-    (boursePerfTotal > 0 ? rowWithLogo('', 'Performance', fmtDelta(bDelta), bDelta>=0?'td-green':'td-red') : '');
+    rowWithLogo(LOGO_TR,      'PEA — ETF',    fmt(peaVal,2)) +
+    rowWithLogo(LOGO_NATIXIS, 'PERCO — FCPE', fmt(percoVal,2)) +
+    (bourseDelta !== null ? rowWithLogo('', 'Performance', fmtDelta(bourseDelta), bourseDelta>=0?'td-green':'td-red') : '');
 
-  // ── Exotique ──
-  const exoKey = latestKey(exoPerf);
-  const exo = exoKey ? exoPerf[exoKey] : {};
-  const btcVal   = parseFloat(exo.btcVal)||0;
-  const orVal    = parseFloat(exo.orVal)||0;
+  // ── Exotique : depuis le portefeuille (positions actuelles) ──
+  const btcPos = exoPos.filter(p => (p.ticker||'').toUpperCase() === 'BTC' || (p.nom||'').toLowerCase().includes('bitcoin'));
+  const orPos  = exoPos.filter(p => !(p.ticker||'').toUpperCase().startsWith('BTC') && !((p.nom||'').toLowerCase().includes('bitcoin')));
+  const btcVal = btcPos.reduce((s,p)  => s + (parseFloat(p.valeur)||0), 0);
+  const orVal  = orPos.reduce((s,p)   => s + (parseFloat(p.valeur)||0), 0);
   const exoTotal = btcVal + orVal;
-  const exoInv   = (parseFloat(exo.btcInv)||0) + (parseFloat(exo.orInv)||0);
-  const exoDelta = exoTotal - exoInv;
+
+  const exoCout = exoTx.reduce((s,t) => {
+    const m = parseFloat(t.montant)||0;
+    return t.op === 'Achat' ? s + m : s - m;
+  }, 0);
+  const exoDelta = exoTotal > 0 && exoCout > 0 ? exoTotal - exoCout : null;
 
   $('home-exo-val').textContent = fmt(exoTotal, 2);
   $('home-exo-rows').innerHTML =
     rowWithLogo(LOGO_TR, 'BTC',    fmt(btcVal,2)) +
     rowWithLogo(LOGO_TR, 'ETC Or', fmt(orVal,2))  +
-    (exoTotal > 0 ? rowWithLogo('', 'Performance', fmtDelta(exoDelta), exoDelta>=0?'td-green':'td-red') : '');
+    (exoDelta !== null ? rowWithLogo('', 'Performance', fmtDelta(exoDelta), exoDelta>=0?'td-green':'td-red') : '');
 
-  // ── Total ──
-  const grandTotal = (boursePerfTotal || 0) + exoTotal + coupleVal + persoVal;
+  // ── Total portefeuille ──
+  const grandTotal = bourseTotal + exoTotal + coupleVal + persoVal;
   $('home-total').textContent = fmt(grandTotal, 2);
   setTimeout(renderHomeChart, 50);
 }
