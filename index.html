@@ -3,7 +3,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Finances">
@@ -2001,19 +2001,18 @@ const CACHE_TTL = 10 * 60 * 1000; // 10 min
 
 // Try multiple CORS proxies in sequence
 async function fetchViaProxy(url) {
+  // Use corsproxy.io which sends proper CORS headers
   const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   ];
   for (const makeProxy of proxies) {
     try {
-      const r = await fetch(makeProxy(url), {mode:'cors', signal: AbortSignal.timeout(6000)});
+      const r = await fetch(makeProxy(url), {signal: AbortSignal.timeout(8000)});
       if (!r.ok) continue;
       const text = await r.text();
-      // allorigins wraps in {contents: "..."}
-      try { const j = JSON.parse(text); if (j.contents) return j.contents; } catch(e) {}
-      return text;
+      if (text && text.length > 10) return text;
     } catch(e) { continue; }
   }
   return null;
@@ -2036,56 +2035,69 @@ async function fetchBTC() {
 }
 
 async function fetchGold() {
-  // metals.live — open CORS, no key needed
+  // Strategy 1: open.er-api.com includes XAU (gold) as a currency — free, open CORS
   try {
-    const r = await fetch('https://api.metals.live/v1/spot/gold',
-      {mode:'cors', signal: AbortSignal.timeout(5000)});
+    const r = await fetch('https://open.er-api.com/v6/latest/XAU',
+      {signal: AbortSignal.timeout(6000)});
     if (r.ok) {
       const d = await r.json();
-      // Returns price in USD per troy oz
-      const usdPerOz = Array.isArray(d) ? d[0]?.price : d?.price;
-      if (usdPerOz) {
-        // Get EUR/USD rate
-        const fxR = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR',
-          {mode:'cors', signal: AbortSignal.timeout(4000)});
-        let eurUsd = 0.92; // fallback rate
-        if (fxR.ok) { const fx = await fxR.json(); eurUsd = fx?.rates?.EUR || eurUsd; }
-        return usdPerOz * eurUsd;
-      }
+      // d.rates.EUR = how many EUR per 1 troy oz of gold
+      const eurPerOz = d?.rates?.EUR;
+      if (eurPerOz && eurPerOz > 0) return eurPerOz;
+    }
+  } catch(e) {}
+  // Strategy 2: frankfurter.app (has XAU too)
+  try {
+    const r = await fetch('https://api.frankfurter.app/latest?from=XAU&to=EUR',
+      {signal: AbortSignal.timeout(5000)});
+    if (r.ok) {
+      const d = await r.json();
+      const eurPerOz = d?.rates?.EUR;
+      if (eurPerOz && eurPerOz > 0) return eurPerOz;
     }
   } catch(e) {}
   return null;
 }
 
 async function fetchETF(ticker) {
-  // Try multiple Yahoo Finance symbols per ticker
   const symbolVariants = {
-    WPEA: ['WPEA.PA', 'WPEA.AS', 'WPEA'],
-    DCAM: ['DCAM.PA', 'DCAM'],
-    PPFB: ['PPFB.L', 'PPFB.MI', 'SGLD.L', 'PPFB'],
+    WPEA: ['WPEA.PA', 'WPEA.AS', 'WPEA.L'],
+    DCAM: ['DCAM.PA', 'DCAM.L'],
+    PPFB: ['PPFB.L', 'PPFB.MI', 'IGLN.L'],
   };
-  const variants = symbolVariants[ticker] || [ticker + '.PA', ticker];
+  const variants = symbolVariants[ticker] || [ticker + '.PA'];
+  // Try multiple Yahoo Finance endpoint versions
+  const yEndpoints = [
+    sym => `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+    sym => `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+    sym => `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${sym}`,
+  ];
   for (const sym of variants) {
-    const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
-    try {
-      const text = await fetchViaProxy(yUrl);
-      if (text) {
+    for (const makeUrl of yEndpoints) {
+      try {
+        const text = await fetchViaProxy(makeUrl(sym));
+        if (!text) continue;
         const d = JSON.parse(text);
-        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        const currency = d?.chart?.result?.[0]?.meta?.currency;
+        // v8 chart format
+        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice
+          || d?.quoteResponse?.result?.[0]?.regularMarketPrice;
+        const currency = d?.chart?.result?.[0]?.meta?.currency
+          || d?.quoteResponse?.result?.[0]?.currency;
         if (price && price > 0) {
-          // Convert GBp to EUR
           if (currency === 'GBp' || currency === 'GBX') {
-            const fxR = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',
-              {mode:'cors', signal: AbortSignal.timeout(4000)}).catch(()=>null);
-            let gbpEur = 1.18;
-            if (fxR && fxR.ok) { const fx = await fxR.json(); gbpEur = fx?.rates?.EUR || gbpEur; }
+            // GBp (pence) → GBP → EUR
+            let gbpEur = 1.18; // fallback
+            try {
+              const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',
+                {signal: AbortSignal.timeout(4000)});
+              if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
+            } catch(e) {}
             return (price / 100) * gbpEur;
           }
           return price;
         }
-      }
-    } catch(e) { continue; }
+      } catch(e) { continue; }
+    }
   }
   return null;
 }
@@ -2100,6 +2112,12 @@ async function fetchPrice(ticker, nom) {
   try {
     if (tk === 'BTC') {
       price = await fetchBTC();
+    } else if (tk === 'PPFB') {
+      price = await fetchETF(tk);
+      if (!price) {
+        const goldEur = await fetchGold();
+        if (goldEur) price = goldEur * 0.01;
+      }
     } else {
       price = await fetchETF(tk);
     }
@@ -2483,6 +2501,15 @@ document.addEventListener('focusout', e => {
     setTimeout(() => { window.scrollTo(0, 0); }, 100);
   }
 });
+
+
+// ── Disable double-tap zoom ──
+let lastTap = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 300) e.preventDefault();
+  lastTap = now;
+}, {passive: false});
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
