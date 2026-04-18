@@ -2400,6 +2400,30 @@ function importFromText() {
   }
 }
 
+
+function confirmRestore() {
+  if (!confirm('Restaurer les données initiales ? Vos données actuelles seront remplacées.')) return;
+  epargneData = JSON.parse(JSON.stringify(SEED.ep_data));
+  creditData  = JSON.parse(JSON.stringify(SEED.cr_data));
+  boursePerf  = JSON.parse(JSON.stringify(SEED.bo_perf));
+  boursePos   = JSON.parse(JSON.stringify(SEED.bo_pos));
+  bourseTx    = JSON.parse(JSON.stringify(SEED.bo_tx));
+  exoPerf     = JSON.parse(JSON.stringify(SEED.exo_perf));
+  exoPos      = JSON.parse(JSON.stringify(SEED.exo_pos));
+  exoTx       = JSON.parse(JSON.stringify(SEED.exo_tx));
+  revData     = JSON.parse(JSON.stringify(SEED.rev_data));
+  save('ep_data',  epargneData);
+  save('cr_data',  creditData);
+  save('bo_perf',  boursePerf);
+  save('bo_pos',   boursePos);
+  save('bo_tx',    bourseTx);
+  save('exo_perf', exoPerf);
+  save('exo_pos',  exoPos);
+  save('exo_tx',   exoTx);
+  save('rev_data', revData);
+  renderAccueil();
+  showSettingsMsg('✓ Données initiales restaurées !');
+}
 function confirmReset() {
   if (confirm('Effacer TOUTES les données ? Cette action est irréversible.')) {
     ['ep_data','cr_data','bo_perf','bo_pos','bo_tx','exo_perf','exo_pos','exo_tx','rev_data']
@@ -2486,6 +2510,11 @@ document.addEventListener('DOMContentLoaded', init);
         <button class="btn" style="margin-top:6px" onclick="importFromText()">Importer</button>
       </div>
     </div>
+
+    <div class="section-title">Données par défaut</div>
+    <button class="btn secondary" style="margin-bottom:10px" onclick="confirmRestore()">
+      🔄 &nbsp;Restaurer les données initiales
+    </button>
 
     <div class="section-title">Danger zone</div>
     <button class="btn danger" onclick="confirmReset()">
