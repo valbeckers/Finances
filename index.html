@@ -543,6 +543,7 @@
               <th>Valeur actuelle</th>
               <th>Delta</th>
               <th>GF</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="bourse-port-tbody"></tbody>
@@ -620,6 +621,7 @@
               <th>Valeur actuelle</th>
               <th>Delta</th>
               <th>GF</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="exo-port-tbody"></tbody>
@@ -1152,7 +1154,7 @@ function fmtPct(n) {
 function fmtDelta(n) {
   if (!n && n !== 0) return '—';
   const sign = n >= 0 ? '+' : '';
-  return sign + fmt(n, 0);
+  return sign + fmt(n, 2);
 }
 function monthKey(y, m) { return `${y}-${String(m+1).padStart(2,'0')}`; }
 function monthLabel(k) {
@@ -1546,9 +1548,10 @@ function renderBoursePort() {
       <td>${valCell}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td>${gfLink}</td>
+      <td><button onclick="deleteBoursePos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
     </tr>`;
   });
-  if (!rows) rows = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
+  if (!rows) rows = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
   $('bourse-port-tbody').innerHTML = rows;
   const totDelta = totalVal > 0 ? totalVal - totalCout : 0;
   $('bourse-port-cout').textContent = fmt(totalCout, 2);
@@ -1748,9 +1751,10 @@ function renderExoPort() {
       <td>${val>0?fmt(val,2):'⏳'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td>${gfLink}</td>
+      <td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
     </tr>`;
   });
-  if (!rows) rows = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
+  if (!rows) rows = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
   $('exo-port-tbody').innerHTML = rows;
   const totDelta = totalVal > 0 ? totalVal - totalCout : 0;
   $('exo-port-cout').textContent = fmt(totalCout, 2);
@@ -2054,18 +2058,35 @@ async function fetchGold() {
 }
 
 async function fetchETF(ticker) {
-  // Yahoo Finance via proxy — try multiple
-  const symbols = {WPEA: 'WPEA.PA', DCAM: 'DCAM.PA'};
-  const sym = symbols[ticker] || ticker + '.PA';
-  const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
-  try {
-    const text = await fetchViaProxy(yUrl);
-    if (text) {
-      const d = JSON.parse(text);
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (price && price > 0) return price;
-    }
-  } catch(e) {}
+  // Try multiple Yahoo Finance symbols per ticker
+  const symbolVariants = {
+    WPEA: ['WPEA.PA', 'WPEA.AS', 'WPEA'],
+    DCAM: ['DCAM.PA', 'DCAM'],
+    PPFB: ['PPFB.L', 'PPFB.MI', 'SGLD.L', 'PPFB'],
+  };
+  const variants = symbolVariants[ticker] || [ticker + '.PA', ticker];
+  for (const sym of variants) {
+    const yUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+    try {
+      const text = await fetchViaProxy(yUrl);
+      if (text) {
+        const d = JSON.parse(text);
+        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        const currency = d?.chart?.result?.[0]?.meta?.currency;
+        if (price && price > 0) {
+          // Convert GBp to EUR
+          if (currency === 'GBp' || currency === 'GBX') {
+            const fxR = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',
+              {mode:'cors', signal: AbortSignal.timeout(4000)}).catch(()=>null);
+            let gbpEur = 1.18;
+            if (fxR && fxR.ok) { const fx = await fxR.json(); gbpEur = fx?.rates?.EUR || gbpEur; }
+            return (price / 100) * gbpEur;
+          }
+          return price;
+        }
+      }
+    } catch(e) { continue; }
+  }
   return null;
 }
 
@@ -2079,17 +2100,6 @@ async function fetchPrice(ticker, nom) {
   try {
     if (tk === 'BTC') {
       price = await fetchBTC();
-    } else if (tk === 'PPFB' || (nom||'').toLowerCase().includes('gold')) {
-      // PPFB is iShares Physical Gold ETC — tracks gold spot
-      // PPFB holds ~0.01 troy oz of gold per share (approx)
-      const goldEur = await fetchGold();
-      if (goldEur) {
-        // PPFB price ≈ gold price * 0.01 (each unit ≈ 1/100 troy oz)
-        // But we fetch the actual ETF price via proxy
-        const etfPrice = await fetchETF('PPFB');
-        price = etfPrice || null;
-        // If ETF price unavailable, don't estimate — leave as is
-      }
     } else {
       price = await fetchETF(tk);
     }
@@ -2291,6 +2301,26 @@ function renderHomeChart() {
 }
 
 
+
+function deleteBoursePos(idx) {
+  if (!confirm('Supprimer cette position et toutes ses transactions ?')) return;
+  const nom = boursePos[idx]?.nom;
+  if (nom) bourseTx = bourseTx.filter(t => t.nom !== nom);
+  boursePos.splice(idx, 1);
+  save('bo_pos', boursePos);
+  save('bo_tx', bourseTx);
+  renderBoursePort(); renderBourseTx(); renderAccueil();
+}
+
+function deleteExoPos(idx) {
+  if (!confirm('Supprimer cette position et toutes ses transactions ?')) return;
+  const nom = exoPos[idx]?.nom;
+  if (nom) exoTx = exoTx.filter(t => t.nom !== nom);
+  exoPos.splice(idx, 1);
+  save('exo_pos', exoPos);
+  save('exo_tx', exoTx);
+  renderExoPort(); renderExoTx(); renderAccueil();
+}
 function calcBoMontant() {
   const pru = parseFloat($('bo-tx-pru').value)||0;
   const vol = parseFloat($('bo-tx-vol').value)||0;
