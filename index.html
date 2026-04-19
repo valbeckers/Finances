@@ -366,6 +366,10 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
   }
+  /* ── LOADING CELL ── */
+  .loading-cell { color: var(--text3) !important; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
   /* ── SCROLLBAR ── */
   #content::-webkit-scrollbar { width: 0; }
 </style>
@@ -1327,6 +1331,8 @@ function renderAccueil() {
   const grandTotal = bourseTotal + exoTotal + coupleVal + persoVal;
   $('home-total').textContent = fmt(grandTotal, 2);
   setTimeout(renderHomeChart, 50);
+  // Auto-fetch prices on startup
+  setTimeout(() => { try { fetchAllExoPrices(); fetchAllBoursePrices(); } catch(e){} }, 2000);
 }
 
 // ─── ÉPARGNE ─────────────────────────────────
@@ -1759,7 +1765,7 @@ function renderExoPort() {
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(6)}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
-      <td>${val>0?fmt(val,2):'⏳'}</td>
+      <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'…'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td>${gfLink}</td>
       <td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
@@ -2021,7 +2027,7 @@ function schedulePriceFetch(type) {
       if (type === 'bourse' || type === 'all') await fetchAllBoursePrices();
       if (type === 'exotique' || type === 'all') await fetchAllExoPrices();
     } catch(e) { console.warn('Price fetch error:', e); }
-  }, 1500); // wait 1.5s after tab switch before fetching
+  }, 800); // wait 0.8s after tab switch before fetching
 }
 function makeAbortSignal(ms) {
   // Safe cross-browser timeout (AbortSignal.timeout not available on older iOS)
@@ -2261,7 +2267,11 @@ async function fetchAllBoursePrices() {
       updated = true;
     }
   }
-  if (updated) { save('bo_pos', boursePos); renderBoursePort(); renderAccueil(); }
+  if (updated) {
+    save('bo_pos', boursePos);
+    renderBoursePort(); // full re-render needed for PERCO manual field
+    renderAccueil();
+  }
 }
 
 async function fetchAllExoPrices() {
@@ -2286,7 +2296,19 @@ async function fetchAllExoPrices() {
       updated = true;
     }
   }
-  if (updated) { save('exo_pos', exoPos); renderExoPort(); renderAccueil(); }
+  if (updated) {
+    save('exo_pos', exoPos);
+    // Update individual cells directly (no full re-render flash)
+    positions.forEach((p, i) => {
+      const cell = $('exo-valcell-' + i);
+      if (cell && exoPos[i]?.pricePerUnit > 0) {
+        const v = exoPos[i].pricePerUnit * p.qty;
+        cell.textContent = fmt(v, 2);
+        cell.classList.remove('loading-cell');
+      }
+    });
+    renderAccueil();
+  }
 }
 
 // ─── CHART ACCUEIL ───────────────────────────
