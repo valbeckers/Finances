@@ -2094,7 +2094,7 @@ const ISIN_MAP = {
 async function fetchJustETF(isin) {
   // Multiple JustETF API endpoint formats to try
   const urls = [
-    `https://www.justetf.com/api/etfs?isin=${isin}&locale=fr&currency=EUR`,
+    `https://www.justetf.com/api/etfs/${isin}/quote?locale=fr&currency=EUR`,
     `https://www.justetf.com/servlet/de.flossbach.justetf.etf.servlet.ETFQuoteServlet?etfisin=${isin}&currency=EUR`,
   ];
 
@@ -2143,20 +2143,51 @@ async function fetchJustETF(isin) {
   return null;
 }
 
+// Euronext product codes
+const EURONEXT_MAP = {
+  'WPEA': 'WPEA-XPAR',
+  'DCAM': 'DCAM-XPAR',
+};
+
+async function fetchEuronext(ticker) {
+  const code = EURONEXT_MAP[ticker];
+  if (!code) return null;
+  try {
+    const url = `https://live.euronext.com/en/pd/data/product?d[]=${code}&type=ETF`;
+    const text = await fetchViaProxy(url);
+    if (!text) return null;
+    const d = JSON.parse(text);
+    // Euronext returns array: [{lastPrice: X, currency: "EUR"}]
+    const price = d?.[0]?.lastPrice ?? d?.data?.[0]?.lastPrice;
+    if (price && parseFloat(price) > 0) {
+      console.log('✓ Euronext', ticker, ':', price);
+      return parseFloat(price);
+    }
+  } catch(e) {}
+  return null;
+}
+
 async function fetchETF(ticker, isin) {
-  // 1. Try JustETF with ISIN (most reliable for EU ETFs)
-  const etfIsin = isin || ISIN_MAP[ticker];
+  const tk = (ticker||'').toUpperCase();
+  const etfIsin = isin || ISIN_MAP[tk];
+
+  // 1. JustETF (correct URL with ISIN in path)
   if (etfIsin) {
     const price = await fetchJustETF(etfIsin);
     if (price) return price;
   }
-  // 2. Fallback: Yahoo Finance via proxy
+
+  // 2. Euronext for Paris-listed ETFs
+  const euronextPrice = await fetchEuronext(tk);
+  if (euronextPrice) return euronextPrice;
+
+  // 3. Yahoo Finance via proxy
   const symbolVariants = {
     WPEA: ['WPEA.PA', 'WPEA.AS'],
     DCAM: ['DCAM.PA'],
     PPFB: ['PPFB.L', 'SGLD.L'],
   };
-  const variants = symbolVariants[ticker] || [ticker + '.PA'];
+  const variants = symbolVariants[tk] || [tk + '.PA'];
   for (const sym of variants) {
     try {
       const url = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
@@ -2516,37 +2547,26 @@ async function debugPrices() {
   const out = $('debug-output');
   out.style.display = 'block';
   out.textContent = 'Test en cours...\n';
+  const log = msg => { out.textContent += msg + '\n'; };
 
-  const log = msg => { out.textContent += msg + '\n'; console.log(msg); };
-
-  // Test BTC
-  try {
-    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR',
-      {signal: makeAbortSignal(5000)});
-    const d = await r.json();
-    log('BTC Binance: ' + (d.price || 'NO PRICE'));
-  } catch(e) { log('BTC error: ' + e.message); }
-
-  // Test JustETF for PPFB
-  const isins = {'PPFB':'IE00B4ND3602','WPEA':'IE0002XZSHO1','DCAM':'FR001400U5Q4'};
-  for (const [ticker, isin] of Object.entries(isins)) {
-    // Test direct
-    const url = `https://www.justetf.com/api/etfs?isin=${isin}&locale=fr&currency=EUR`;
-    try {
-      const r = await fetch(url, {signal: makeAbortSignal(6000)});
-      const text = await r.text();
-      log(`${ticker} direct (${r.status}): ${text.substring(0,150)}`);
-    } catch(e) { log(`${ticker} direct error: ${e.message}`); }
-
-    // Test via corsproxy
+  const testUrl = async (label, url) => {
     try {
       const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-      const r2 = await fetch(proxyUrl, {signal: makeAbortSignal(8000)});
-      const text2 = await r2.text();
-      log(`${ticker} proxy (${r2.status}): ${text2.substring(0,150)}`);
-    } catch(e) { log(`${ticker} proxy error: ${e.message}`); }
-  }
-  log('--- Test terminé ---');
+      const r = await fetch(proxyUrl, {signal: makeAbortSignal(7000)});
+      const text = await r.text();
+      log(`${label} (${r.status}): ${text.substring(0,120)}`);
+    } catch(e) { log(`${label} ERR: ${e.message}`); }
+  };
+
+  // Test PPFB via multiple URL patterns
+  await testUrl('JustETF v1', 'https://www.justetf.com/api/etfs/IE00B4ND3602/quote?locale=fr&currency=EUR');
+  await testUrl('JustETF v2', 'https://www.justetf.com/servlet/de.flossbach.justetf.etf.servlet.ETFQuoteServlet?etfisin=IE00B4ND3602&currency=EUR');
+  await testUrl('Euronext WPEA', 'https://live.euronext.com/en/pd/data/product?d[]=WPEA-XPAR&type=ETF');
+  await testUrl('Euronext DCAM', 'https://live.euronext.com/en/pd/data/product?d[]=DCAM-XPAR&type=ETF');
+  await testUrl('iShares PPFB', 'https://www.ishares.com/uk/individual/en/products/253743/ISHARES_PHYSICAL_GOLD_ETC/1478372549651.ajax?fileType=json&tab=overview&dataType=fund');
+  await testUrl('Yahoo PPFB.L', 'https://query2.finance.yahoo.com/v8/finance/chart/PPFB.L?interval=1d&range=1d');
+  await testUrl('Yahoo WPEA.PA', 'https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d');
+  log('--- Fin ---');
 }
 
 function confirmRestore() {
