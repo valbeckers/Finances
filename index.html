@@ -1533,7 +1533,10 @@ function renderBoursePort() {
     const pru   = p.cost || 0;
     const vol   = p.qty  || 0;
     const cout  = pru * vol;
-    const val   = parseFloat(boursePos[i]?.valeur)||0;
+    const stored_b = boursePos[i] || {};
+    const val = stored_b.pricePerUnit > 0
+      ? stored_b.pricePerUnit * vol
+      : parseFloat(stored_b.valeur)||0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
     totalVal  += val;
@@ -1740,7 +1743,11 @@ function renderExoPort() {
     const pru  = p.cost || 0;
     const vol  = p.qty  || 0;
     const cout = pru * vol;
-    const val  = parseFloat(exoPos[i]?.valeur)||0;
+    const stored = exoPos[i] || {};
+    // If we have a pricePerUnit from API, recalculate from vol to avoid stale values
+    const val = stored.pricePerUnit > 0
+      ? stored.pricePerUnit * vol
+      : parseFloat(stored.valeur)||0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
     totalVal  += val;
@@ -2235,21 +2242,22 @@ async function fetchPrice(ticker, nom) {
 
 async function fetchAllBoursePrices() {
   const positions = computePortfolioFromTx(bourseTx);
-  if (boursePos.length !== positions.length) {
-    boursePos = positions.map(p => {
-      const ex = boursePos.find(b => b.nom === p.nom);
-      return {...p, valeur: ex ? ex.valeur : 0};
-    });
-  }
+  // Rebuild boursePos aligned with current positions
+  boursePos = positions.map(p => {
+    const ex = boursePos.find(b => b.nom === p.nom || b.ticker === p.ticker);
+    return {...p, pricePerUnit: ex?.pricePerUnit || 0, valeur: ex?.valeur || 0};
+  });
+
   let updated = false;
   for (let i = 0; i < positions.length; i++) {
     const p = positions[i];
     if (!p.ticker || (p.support||'').toUpperCase() === 'PERCO') continue;
-    // Store ISIN in ISIN_MAP dynamically from position data
     if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
     const price = await fetchPrice(p.ticker, p.nom);
     if (price && price > 0) {
+      boursePos[i].pricePerUnit = price;
       boursePos[i].valeur = (price * p.qty).toFixed(2);
+      console.log(p.nom, '| price:', price, '| qty:', p.qty, '| total:', boursePos[i].valeur);
       updated = true;
     }
   }
@@ -2258,12 +2266,12 @@ async function fetchAllBoursePrices() {
 
 async function fetchAllExoPrices() {
   const positions = computeExoPortfolioFromTx();
-  if (exoPos.length !== positions.length) {
-    exoPos = positions.map(p => {
-      const ex = exoPos.find(e => e.nom === p.nom);
-      return {...p, valeur: ex ? ex.valeur : 0};
-    });
-  }
+  // Rebuild exoPos aligned with current positions
+  exoPos = positions.map(p => {
+    const ex = exoPos.find(e => e.nom === p.nom || e.ticker === p.ticker);
+    return {...p, pricePerUnit: ex?.pricePerUnit || 0, valeur: ex?.valeur || 0};
+  });
+
   let updated = false;
   for (let i = 0; i < positions.length; i++) {
     const p = positions[i];
@@ -2271,7 +2279,10 @@ async function fetchAllExoPrices() {
     if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
     const price = await fetchPrice(p.ticker, p.nom);
     if (price && price > 0) {
+      // Store price per unit AND compute total from actual qty
+      exoPos[i].pricePerUnit = price;
       exoPos[i].valeur = (price * p.qty).toFixed(2);
+      console.log(p.nom, '| price:', price, '| qty:', p.qty, '| total:', exoPos[i].valeur);
       updated = true;
     }
   }
