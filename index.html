@@ -528,7 +528,10 @@
     <div id="bourse-port">
       <div class="flex-row" style="margin-bottom:12px">
         <div class="page-subtitle">Positions actuelles</div>
-        <button class="btn-icon" onclick="openModal('modal-bourse-pos')">＋</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-icon" id="bo-refresh-btn" onclick="schedulePriceFetch('bourse')" title="Actualiser les prix">↻</button>
+          <button class="btn-icon" onclick="openModal('modal-bourse-pos')">＋</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -606,7 +609,10 @@
     <div id="exo-port">
       <div class="flex-row" style="margin-bottom:12px">
         <div class="page-subtitle">Positions actuelles</div>
-        <button class="btn-icon" onclick="openModal('modal-exo-pos')">＋</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-icon" id="exo-refresh-btn" onclick="schedulePriceFetch('exotique')" title="Actualiser les prix">↻</button>
+          <button class="btn-icon" onclick="openModal('modal-exo-pos')">＋</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -1192,8 +1198,8 @@ function switchTab(name, btn) {
   if (name === 'accueil') renderAccueil();
   if (name === 'epargne') { if($('ep-year-sel')) buildYearOptions('ep-year-sel', 2025); renderEpargne(); }
   if (name === 'credits') { if($('cr-year-sel')) buildYearOptions('cr-year-sel', 2025, 2050); renderCredits(); }
-  if (name === 'bourse') { renderBoursePort(); renderBourseTx(); fetchAllBoursePrices(); }
-  if (name === 'exotique') { renderExoPort(); renderExoTx(); fetchAllExoPrices(); }
+  if (name === 'bourse') { renderBoursePort(); renderBourseTx(); schedulePriceFetch('bourse'); }
+  if (name === 'exotique') { renderExoPort(); renderExoTx(); schedulePriceFetch('exotique'); }
   if (name === 'revenus') renderRevenus();
 }
 
@@ -1321,8 +1327,6 @@ function renderAccueil() {
   const grandTotal = bourseTotal + exoTotal + coupleVal + persoVal;
   $('home-total').textContent = fmt(grandTotal, 2);
   setTimeout(renderHomeChart, 50);
-  fetchAllBoursePrices();
-  fetchAllExoPrices();
 }
 
 // ─── ÉPARGNE ─────────────────────────────────
@@ -2000,8 +2004,29 @@ const PRICE_CACHE = {};
 const CACHE_TTL = 10 * 60 * 1000; // 10 min
 
 // Try multiple CORS proxies in sequence
+
+// ── Price fetching: deferred, non-blocking ──
+let priceFetchTimer = null;
+function schedulePriceFetch(type) {
+  if (priceFetchTimer) clearTimeout(priceFetchTimer);
+  priceFetchTimer = setTimeout(async () => {
+    try {
+      if (type === 'bourse' || type === 'all') await fetchAllBoursePrices();
+      if (type === 'exotique' || type === 'all') await fetchAllExoPrices();
+    } catch(e) { console.warn('Price fetch error:', e); }
+  }, 1500); // wait 1.5s after tab switch before fetching
+}
+function makeAbortSignal(ms) {
+  // Safe cross-browser timeout (AbortSignal.timeout not available on older iOS)
+  try {
+    if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+  } catch(e) {}
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
+  return ctrl.signal;
+}
+
 async function fetchViaProxy(url) {
-  // Use corsproxy.io which sends proper CORS headers
   const proxies = [
     u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
@@ -2009,7 +2034,7 @@ async function fetchViaProxy(url) {
   ];
   for (const makeProxy of proxies) {
     try {
-      const r = await fetch(makeProxy(url), {signal: AbortSignal.timeout(8000)});
+      const r = await fetch(makeProxy(url), {signal: makeAbortSignal(8000)});
       if (!r.ok) continue;
       const text = await r.text();
       if (text && text.length > 10) return text;
@@ -2022,13 +2047,13 @@ async function fetchBTC() {
   // Binance - confirmed open CORS
   try {
     const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR',
-      {mode:'cors', signal: AbortSignal.timeout(5000)});
+      {mode:'cors', signal: makeAbortSignal(5000)});
     if (r.ok) { const d = await r.json(); if (d.price) return parseFloat(d.price); }
   } catch(e) {}
   // CoinGecko fallback
   try {
     const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur',
-      {mode:'cors', signal: AbortSignal.timeout(5000)});
+      {mode:'cors', signal: makeAbortSignal(5000)});
     if (r.ok) { const d = await r.json(); if (d?.bitcoin?.eur) return d.bitcoin.eur; }
   } catch(e) {}
   return null;
@@ -2038,7 +2063,7 @@ async function fetchGold() {
   // Strategy 1: open.er-api.com includes XAU (gold) as a currency — free, open CORS
   try {
     const r = await fetch('https://open.er-api.com/v6/latest/XAU',
-      {signal: AbortSignal.timeout(6000)});
+      {signal: makeAbortSignal(6000)});
     if (r.ok) {
       const d = await r.json();
       // d.rates.EUR = how many EUR per 1 troy oz of gold
@@ -2049,7 +2074,7 @@ async function fetchGold() {
   // Strategy 2: frankfurter.app (has XAU too)
   try {
     const r = await fetch('https://api.frankfurter.app/latest?from=XAU&to=EUR',
-      {signal: AbortSignal.timeout(5000)});
+      {signal: makeAbortSignal(5000)});
     if (r.ok) {
       const d = await r.json();
       const eurPerOz = d?.rates?.EUR;
@@ -2059,45 +2084,77 @@ async function fetchGold() {
   return null;
 }
 
-async function fetchETF(ticker) {
+// ISIN mapping for JustETF lookups
+const ISIN_MAP = {
+  'WPEA': 'IE0002XZSHO1',
+  'DCAM': 'FR001400U5Q4',
+  'PPFB': 'IE00B4ND3602',
+};
+
+async function fetchJustETF(isin) {
+  // JustETF internal API — called by their own pages, has CORS support
+  const url = `https://www.justetf.com/api/etfs?isin=${isin}&locale=fr&currency=EUR`;
+  // Try direct first, then via proxy
+  const attempts = [
+    () => fetch(url, {
+      signal: makeAbortSignal(6000),
+      headers: { 'Referer': 'https://www.justetf.com/' }
+    }).then(r => r.ok ? r.text() : null).catch(() => null),
+    () => fetchViaProxy(url),
+  ];
+  for (const attempt of attempts) {
+    try {
+      const text = await attempt();
+      if (!text) continue;
+      const d = JSON.parse(text);
+      // JustETF returns: { etfs: [{ latestMarketValue: { value: X, currency: "EUR" } }] }
+      const val = d?.etfs?.[0]?.latestMarketValue?.value
+        ?? d?.etfs?.[0]?.lastQuote?.value
+        ?? d?.etfs?.[0]?.quote?.value;
+      if (val && val > 0) {
+        console.log('✓ JustETF price for', isin, ':', val, 'EUR');
+        return parseFloat(val);
+      }
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+async function fetchETF(ticker, isin) {
+  // 1. Try JustETF with ISIN (most reliable for EU ETFs)
+  const etfIsin = isin || ISIN_MAP[ticker];
+  if (etfIsin) {
+    const price = await fetchJustETF(etfIsin);
+    if (price) return price;
+  }
+  // 2. Fallback: Yahoo Finance via proxy
   const symbolVariants = {
-    WPEA: ['WPEA.PA', 'WPEA.AS', 'WPEA.L'],
-    DCAM: ['DCAM.PA', 'DCAM.L'],
-    PPFB: ['PPFB.L', 'PPFB.MI', 'IGLN.L'],
+    WPEA: ['WPEA.PA', 'WPEA.AS'],
+    DCAM: ['DCAM.PA'],
+    PPFB: ['PPFB.L', 'SGLD.L'],
   };
   const variants = symbolVariants[ticker] || [ticker + '.PA'];
-  // Try multiple Yahoo Finance endpoint versions
-  const yEndpoints = [
-    sym => `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
-    sym => `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
-    sym => `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${sym}`,
-  ];
   for (const sym of variants) {
-    for (const makeUrl of yEndpoints) {
-      try {
-        const text = await fetchViaProxy(makeUrl(sym));
-        if (!text) continue;
-        const d = JSON.parse(text);
-        // v8 chart format
-        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice
-          || d?.quoteResponse?.result?.[0]?.regularMarketPrice;
-        const currency = d?.chart?.result?.[0]?.meta?.currency
-          || d?.quoteResponse?.result?.[0]?.currency;
-        if (price && price > 0) {
-          if (currency === 'GBp' || currency === 'GBX') {
-            // GBp (pence) → GBP → EUR
-            let gbpEur = 1.18; // fallback
-            try {
-              const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',
-                {signal: AbortSignal.timeout(4000)});
-              if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
-            } catch(e) {}
-            return (price / 100) * gbpEur;
-          }
-          return price;
+    try {
+      const url = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+      const text = await fetchViaProxy(url);
+      if (!text) continue;
+      const d = JSON.parse(text);
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      const currency = d?.chart?.result?.[0]?.meta?.currency;
+      if (price && price > 0) {
+        if (currency === 'GBp' || currency === 'GBX') {
+          let gbpEur = 1.18;
+          try {
+            const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',
+              {signal: makeAbortSignal(4000)});
+            if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
+          } catch(e) {}
+          return (price / 100) * gbpEur;
         }
-      } catch(e) { continue; }
-    }
+        return price;
+      }
+    } catch(e) { continue; }
   }
   return null;
 }
@@ -2113,13 +2170,22 @@ async function fetchPrice(ticker, nom) {
     if (tk === 'BTC') {
       price = await fetchBTC();
     } else if (tk === 'PPFB') {
-      price = await fetchETF(tk);
+      // Try JustETF first (PPFB = iShares Physical Gold ETC)
+      price = await fetchETF(tk, 'IE00B4ND3602');
+      // Fallback: gold spot price × ratio
       if (!price) {
         const goldEur = await fetchGold();
-        if (goldEur) price = goldEur * 0.01;
+        if (goldEur) {
+          // 1 PPFB share ≈ gold spot / ~100 (rough estimate, actual ratio varies)
+          // Better: use gold spot as-is, user can verify
+          price = goldEur * 0.01;
+          console.log('PPFB estimated from gold spot:', price);
+        }
       }
     } else {
-      price = await fetchETF(tk);
+      // Pass ISIN from map if available
+      const isin = ISIN_MAP[tk];
+      price = await fetchETF(tk, isin);
     }
   } catch(e) {
     console.warn('Price fetch failed for', ticker, e.message);
@@ -2146,6 +2212,8 @@ async function fetchAllBoursePrices() {
   for (let i = 0; i < positions.length; i++) {
     const p = positions[i];
     if (!p.ticker || (p.support||'').toUpperCase() === 'PERCO') continue;
+    // Store ISIN in ISIN_MAP dynamically from position data
+    if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
     const price = await fetchPrice(p.ticker, p.nom);
     if (price && price > 0) {
       boursePos[i].valeur = (price * p.qty).toFixed(2);
@@ -2167,6 +2235,7 @@ async function fetchAllExoPrices() {
   for (let i = 0; i < positions.length; i++) {
     const p = positions[i];
     if (!p.ticker) continue;
+    if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
     const price = await fetchPrice(p.ticker, p.nom);
     if (price && price > 0) {
       exoPos[i].valeur = (price * p.qty).toFixed(2);
