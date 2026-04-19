@@ -1546,8 +1546,8 @@ function renderBoursePort() {
       <td><span class="chip">${p.support||'—'}</span></td>
       <td>${p.nom}</td>
       <td>${p.ticker||'—'}</td>
-      <td>${vol.toFixed(4)}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
+      <td>${vol.toFixed(4)}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
       <td>${valCell}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
@@ -1749,8 +1749,8 @@ function renderExoPort() {
       <td><span class="chip">${p.type||'—'}</span></td>
       <td>${p.nom}</td>
       <td>${p.ticker||'—'}</td>
-      <td>${vol.toFixed(6)}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
+      <td>${vol.toFixed(6)}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
       <td>${val>0?fmt(val,2):'⏳'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
@@ -2113,14 +2113,9 @@ async function fetchJustETF(isin) {
         try {
           const d = JSON.parse(text);
           // Try every possible field name JustETF might use
-          const val = d?.etfs?.[0]?.latestMarketValue?.value
-            ?? d?.etfs?.[0]?.lastQuote?.value
-            ?? d?.etfs?.[0]?.quote?.value
-            ?? d?.etfs?.[0]?.nav?.value
-            ?? d?.etfs?.[0]?.price
-            ?? d?.price
-            ?? d?.value
-            ?? d?.nav;
+          const val = d?.elatestQuote?.raw
+            ?? d?.etfs?.[0]?.latestQuote?.raw
+            ?? d?.etfs?.[0]?.latestMarketValue?.value;
           if (val && parseFloat(val) > 0) {
             console.log('✓ JustETF price for', isin, ':', val);
             return parseFloat(val);
@@ -2171,45 +2166,29 @@ async function fetchETF(ticker, isin) {
   const tk = (ticker||'').toUpperCase();
   const etfIsin = isin || ISIN_MAP[tk];
 
-  // 1. JustETF (correct URL with ISIN in path)
+  // Yahoo symbols confirmed working
+  const yahooSymbols = { WPEA: 'WPEA.PA', DCAM: 'DCAM.PA' };
+
+  // 1. Yahoo Finance (WPEA, DCAM confirmed)
+  const yahooSym = yahooSymbols[tk];
+  if (yahooSym) {
+    try {
+      const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + yahooSym + '?interval=1d&range=1d';
+      const text = await fetchViaProxy(url);
+      if (text) {
+        const d = JSON.parse(text);
+        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if (price && price > 0) { console.log('Yahoo OK', tk, price); return price; }
+      }
+    } catch(e) {}
+  }
+
+  // 2. JustETF via ISIN (PPFB and others)
   if (etfIsin) {
     const price = await fetchJustETF(etfIsin);
     if (price) return price;
   }
 
-  // 2. Euronext for Paris-listed ETFs
-  const euronextPrice = await fetchEuronext(tk);
-  if (euronextPrice) return euronextPrice;
-
-  // 3. Yahoo Finance via proxy
-  const symbolVariants = {
-    WPEA: ['WPEA.PA', 'WPEA.AS'],
-    DCAM: ['DCAM.PA'],
-    PPFB: ['PPFB.L', 'SGLD.L'],
-  };
-  const variants = symbolVariants[tk] || [tk + '.PA'];
-  for (const sym of variants) {
-    try {
-      const url = `https://query2.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
-      const text = await fetchViaProxy(url);
-      if (!text) continue;
-      const d = JSON.parse(text);
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      const currency = d?.chart?.result?.[0]?.meta?.currency;
-      if (price && price > 0) {
-        if (currency === 'GBp' || currency === 'GBX') {
-          let gbpEur = 1.18;
-          try {
-            const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',
-              {signal: makeAbortSignal(4000)});
-            if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
-          } catch(e) {}
-          return (price / 100) * gbpEur;
-        }
-        return price;
-      }
-    } catch(e) { continue; }
-  }
   return null;
 }
 
@@ -2569,28 +2548,15 @@ async function debugPrices() {
   log('--- Fin ---');
 }
 
-function confirmRestore() {
-  if (!confirm('Restaurer les données initiales ? Vos données actuelles seront remplacées.')) return;
-  epargneData = JSON.parse(JSON.stringify(SEED.ep_data));
-  creditData  = JSON.parse(JSON.stringify(SEED.cr_data));
-  boursePerf  = JSON.parse(JSON.stringify(SEED.bo_perf));
-  boursePos   = JSON.parse(JSON.stringify(SEED.bo_pos));
-  bourseTx    = JSON.parse(JSON.stringify(SEED.bo_tx));
-  exoPerf     = JSON.parse(JSON.stringify(SEED.exo_perf));
-  exoPos      = JSON.parse(JSON.stringify(SEED.exo_pos));
-  exoTx       = JSON.parse(JSON.stringify(SEED.exo_tx));
-  revData     = JSON.parse(JSON.stringify(SEED.rev_data));
-  save('ep_data',  epargneData);
-  save('cr_data',  creditData);
-  save('bo_perf',  boursePerf);
-  save('bo_pos',   boursePos);
-  save('bo_tx',    bourseTx);
-  save('exo_perf', exoPerf);
-  save('exo_pos',  exoPos);
-  save('exo_tx',   exoTx);
-  save('rev_data', revData);
-  renderAccueil();
-  showSettingsMsg('✓ Données initiales restaurées !');
+
+function forceReload() {
+  // Clear all caches and force fresh reload from server
+  if ('caches' in window) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+  // Add cache-busting parameter to force bypass
+  const url = window.location.href.split('?')[0] + '?v=' + Date.now();
+  window.location.replace(url);
 }
 function confirmReset() {
   if (confirm('Effacer TOUTES les données ? Cette action est irréversible.')) {
@@ -2688,9 +2654,9 @@ document.addEventListener('DOMContentLoaded', init);
       </div>
     </div>
 
-    <div class="section-title">Données par défaut</div>
-    <button class="btn secondary" style="margin-bottom:10px" onclick="confirmRestore()">
-      🔄 &nbsp;Restaurer les données initiales
+    <div class="section-title">Application</div>
+    <button class="btn secondary" style="margin-bottom:10px" onclick="forceReload()">
+      🔁 &nbsp;Forcer le rechargement de l'app
     </button>
     <button class="btn secondary" style="margin-bottom:10px" onclick="debugPrices()">
       🔍 &nbsp;Tester les prix (debug)
