@@ -1350,8 +1350,7 @@ function renderAccueil() {
   // ── Total portefeuille ──
   const grandTotal = bourseTotal + exoTotal + coupleVal + persoVal;
   $('home-total').textContent = fmt(grandTotal, 2);
-  // Auto-fetch prices on startup
-  setTimeout(() => { try { fetchAllExoPrices(); fetchAllBoursePrices(); } catch(e){} }, 2000);
+  // Prices fetched on demand via ↻ button or tab switch
 }
 
 // ─── ÉPARGNE ─────────────────────────────────
@@ -2447,21 +2446,10 @@ document.addEventListener('focusin', e => {
   }
 });
 
-document.addEventListener('focusout', e => {
-  if (e.target.classList.contains('cell-input')) {
-    // Scroll back to top of content area slightly to avoid jump
-    setTimeout(() => { window.scrollTo(0, 0); }, 100);
-  }
-});
 
 
-// ── Disable double-tap zoom ──
-let lastTap = 0;
-document.addEventListener('touchend', e => {
-  const now = Date.now();
-  if (now - lastTap < 300) e.preventDefault();
-  lastTap = now;
-}, {passive: false});
+
+// double-tap zoom disabled via viewport meta only
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
