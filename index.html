@@ -1365,7 +1365,7 @@ function renderEpargne() {
     const tot = EP_KEYS.reduce((s,key) => s+(parseFloat(d[key])||0), 0);
     annualRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
-      <td class="${tot>0?'td-purple':''}" id="ep-tot-${k}">${tot>0?fmt(tot,2):'—'}</td>
+      <td class="${tot>0?'td-purple':''}" id="ep-tot-${k}">${tot>0?fmt(Math.round(tot),0):'—'}</td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="antid" type="number" value="${d.antid||''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="prec"  type="number" value="${d.prec||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="secu"  type="number" value="${d.secu||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
@@ -1387,7 +1387,7 @@ function saveEpargneCell(input) {
   const d = epargneData[k];
   const tot = ['antid','prec','secu','vcelia','vval','vac'].reduce((s,kk)=>s+(parseFloat(d[kk])||0),0);
   const cell = $('ep-tot-'+k);
-  if (cell) { cell.textContent = tot>0?fmt(tot,0):'—'; cell.className = tot>0?'td-purple':''; }
+  if (cell) { cell.textContent = tot>0?fmt(Math.round(tot),0):'—'; cell.className = tot>0?'td-purple':''; }
   renderAccueil();
 }
 
@@ -1409,7 +1409,7 @@ function renderCredits() {
     const tot = CR_KEYS.reduce((s,key) => s+(parseFloat(d[key])||0), 0);
     hRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
-      <td class="${tot>0?'td-red':''}" id="cr-tot-${k}">${tot>0?fmt(tot,2):'—'}</td>
+      <td class="${tot>0?'td-red':''}" id="cr-tot-${k}">${tot>0?fmt(Math.round(tot),0):'—'}</td>
       <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="immo"    type="number" value="${d.immo||''}"    placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="sandra"  type="number" value="${d.sandra||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap cell-red"><input class="cell-input cell-red" data-month="${k}" data-key="polt"    type="number" value="${d.polt||''}"    placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
@@ -1428,7 +1428,7 @@ function saveCreditCell(input) {
   const d = creditData[k];
   const tot = ['immo','sandra','polt','schmidt'].reduce((s,kk)=>s+(parseFloat(d[kk])||0),0);
   const cell = $('cr-tot-'+k);
-  if (cell) { cell.textContent = tot>0?fmt(tot,0):'—'; cell.className = tot>0?'td-red':''; }
+  if (cell) { cell.textContent = tot>0?fmt(Math.round(tot),0):'—'; cell.className = tot>0?'td-red':''; }
 }
 
 function creditNavYear(dir) {
