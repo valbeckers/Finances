@@ -2056,350 +2056,250 @@ const CACHE_TTL = 10 * 60 * 1000; // 10 min
 // Try multiple CORS proxies in sequence
 
 // ── Price fetching: deferred, non-blocking ──
-let priceFetchTimer = null;
-let priceFetchAbort = null;
-function schedulePriceFetch(type) {
-  if (priceFetchTimer) clearTimeout(priceFetchTimer);
-  priceFetchTimer = setTimeout(async () => {
-    if (priceFetchAbort) priceFetchAbort.abort();
-    priceFetchAbort = new AbortController();
-    try {
-      if (type === 'bourse' || type === 'all') await fetchAllBoursePrices();
-      if (type === 'exotique' || type === 'all') await fetchAllExoPrices();
-    } catch(e) {
-      if (e.name !== 'AbortError') console.warn('Price fetch error:', e);
-    }
-  }, 800);
-}
+
 function makeAbortSignal(ms) {
-  // Safe cross-browser timeout (AbortSignal.timeout not available on older iOS)
-  try {
-    if (AbortSignal.timeout) return AbortSignal.timeout(ms);
-  } catch(e) {}
+  try { if (AbortSignal.timeout) return AbortSignal.timeout(ms); } catch(e) {}
   const ctrl = new AbortController();
   setTimeout(() => ctrl.abort(), ms);
   return ctrl.signal;
 }
 
-async function fetchViaProxy(url) {
-  const proxies = [
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  ];
-  for (const makeProxy of proxies) {
-    try {
-      const r = await fetch(makeProxy(url), {signal: makeAbortSignal(8000)});
-      if (!r.ok) continue;
-      const text = await r.text();
-      if (text && text.length > 10) return text;
-    } catch(e) { continue; }
-  }
-  return null;
+// ── Price fetch timer ──
+let priceFetchTimer = null;
+let priceFetchAbort = null;
+function schedulePriceFetch(type) {
+  if (priceFetchTimer) clearTimeout(priceFetchTimer);
+  priceFetchTimer = setTimeout(() => {
+    // Use setTimeout(0) to yield to UI before starting fetch
+    setTimeout(() => {
+      try { fetchAllPrices(type); } catch(e) {}
+    }, 0);
+  }, 1000);
 }
 
+// ── Fetch via proxy: try all 3 in parallel, take first success ──
+async function fetchViaProxy(url) {
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  // Race all proxies simultaneously — fastest wins
+  try {
+    const result = await Promise.race(
+      proxies.map(proxyUrl =>
+        fetch(proxyUrl, {signal: makeAbortSignal(3000)})
+          .then(r => r.ok ? r.text() : Promise.reject('not ok'))
+          .then(t => (t && t.length > 10) ? t : Promise.reject('empty'))
+          .catch(() => new Promise(() => {})) // never reject — just hang
+      ).concat([
+        // Overall timeout: if all proxies fail within 4s, return null
+        new Promise(resolve => setTimeout(() => resolve(null), 4000))
+      ])
+    );
+    return result || null;
+  } catch(e) { return null; }
+}
+
+// ── BTC via Binance ──
 async function fetchBTC() {
-  // Binance - confirmed open CORS
   try {
     const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR',
-      {mode:'cors', signal: makeAbortSignal(5000)});
+      {signal: makeAbortSignal(3000)});
     if (r.ok) { const d = await r.json(); if (d.price) return parseFloat(d.price); }
   } catch(e) {}
-  // CoinGecko fallback
   try {
     const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur',
-      {mode:'cors', signal: makeAbortSignal(5000)});
+      {signal: makeAbortSignal(3000)});
     if (r.ok) { const d = await r.json(); if (d?.bitcoin?.eur) return d.bitcoin.eur; }
   } catch(e) {}
   return null;
 }
 
+// ── Gold price for PPFB fallback ──
 async function fetchGold() {
-  // Strategy 1: open.er-api.com includes XAU (gold) as a currency — free, open CORS
   try {
-    const r = await fetch('https://open.er-api.com/v6/latest/XAU',
-      {signal: makeAbortSignal(6000)});
-    if (r.ok) {
-      const d = await r.json();
-      // d.rates.EUR = how many EUR per 1 troy oz of gold
-      const eurPerOz = d?.rates?.EUR;
-      if (eurPerOz && eurPerOz > 0) return eurPerOz;
-    }
+    const r = await fetch('https://open.er-api.com/v6/latest/XAU', {signal: makeAbortSignal(3000)});
+    if (r.ok) { const d = await r.json(); if (d?.rates?.EUR > 0) return d.rates.EUR; }
   } catch(e) {}
-  // Strategy 2: frankfurter.app (has XAU too)
+  return null;
+}
+
+// ── Boursorama for PPFB (iShares Physical Gold ETC) ──
+async function fetchBoursorama(symbol) {
   try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=XAU&to=EUR',
-      {signal: makeAbortSignal(5000)});
-    if (r.ok) {
-      const d = await r.json();
-      const eurPerOz = d?.rates?.EUR;
-      if (eurPerOz && eurPerOz > 0) return eurPerOz;
+    const url = `https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=${symbol}&length=1&adjusted=1&periode=0`;
+    const text = await fetchViaProxy(url);
+    if (text) {
+      const d = JSON.parse(text);
+      const price = d?.d?.data?.[0]?.c || d?.d?.data?.[d?.d?.data?.length-1]?.c;
+      if (price && price > 0) return parseFloat(price);
     }
   } catch(e) {}
   return null;
 }
 
-// ISIN mapping for JustETF lookups
+// ── JustETF via ISIN ──
+async function fetchJustETF(isin) {
+  try {
+    const url = `https://www.justetf.com/api/etfs/${isin}/quote?locale=fr&currency=EUR`;
+    const text = await fetchViaProxy(url);
+    if (text) {
+      const d = JSON.parse(text);
+      const val = d?.latestQuote?.raw ?? d?.etfs?.[0]?.latestQuote?.raw ?? d?.etfs?.[0]?.latestMarketValue?.value;
+      if (val && parseFloat(val) > 0) return parseFloat(val);
+    }
+  } catch(e) {}
+  return null;
+}
+
+// ── Yahoo Finance via proxy ──
+async function fetchYahoo(symbol) {
+  try {
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+    const text = await fetchViaProxy(url);
+    if (text) {
+      const d = JSON.parse(text);
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      const currency = d?.chart?.result?.[0]?.meta?.currency;
+      if (price && price > 0) {
+        if (currency === 'GBp' || currency === 'GBX') {
+          let gbpEur = 1.18;
+          try {
+            const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',{signal:makeAbortSignal(2000)});
+            if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
+          } catch(e) {}
+          return (price/100) * gbpEur;
+        }
+        return price;
+      }
+    }
+  } catch(e) {}
+  return null;
+}
+
+// ISIN map
 const ISIN_MAP = {
   'WPEA': 'IE0002XZSHO1',
   'DCAM': 'FR001400U5Q4',
   'PPFB': 'IE00B4ND3602',
 };
 
-async function fetchJustETF(isin) {
-  // Multiple JustETF API endpoint formats to try
-  const urls = [
-    `https://www.justetf.com/api/etfs/${isin}/quote?locale=fr&currency=EUR`,
-    `https://www.justetf.com/servlet/de.flossbach.justetf.etf.servlet.ETFQuoteServlet?etfisin=${isin}&currency=EUR`,
-  ];
-
-  for (const url of urls) {
-    // Try direct, then via each proxy
-    const sources = [
-      () => fetch(url, { signal: makeAbortSignal(6000) }).then(r => r.ok ? r.text() : null).catch(() => null),
-      () => fetchViaProxy(url),
-    ];
-    for (const source of sources) {
-      try {
-        const text = await source();
-        if (!text || text.length < 5) continue;
-        console.log('JustETF raw response for', isin, ':', text.substring(0, 200));
-        // Try JSON parse
-        try {
-          const d = JSON.parse(text);
-          // Try every possible field name JustETF might use
-          const val = d?.latestQuote?.raw
-            ?? d?.etfs?.[0]?.latestQuote?.raw
-            ?? d?.etfs?.[0]?.latestMarketValue?.value;
-          if (val && parseFloat(val) > 0) {
-            console.log('✓ JustETF price for', isin, ':', val);
-            return parseFloat(val);
-          }
-          // Log full structure to debug
-          console.log('JustETF full JSON:', JSON.stringify(d).substring(0, 500));
-        } catch(e) {
-          // Maybe it's HTML — try to extract price with regex
-          const match = text.match(/(\d+[.,]\d+)\s*EUR/) ||
-                        text.match(/class="price[^"]*"[^>]*>([^<]+)/) ||
-                        text.match(/"regularMarketPrice"\s*:\s*([\d.]+)/);
-          if (match) {
-            const price = parseFloat(match[1].replace(',', '.'));
-            if (price > 0) { console.log('✓ JustETF HTML price:', price); return price; }
-          }
-        }
-      } catch(e) { continue; }
-    }
-  }
-  return null;
-}
-
-// Euronext product codes
-const EURONEXT_MAP = {
-  'WPEA': 'WPEA-XPAR',
-  'DCAM': 'DCAM-XPAR',
-};
-
-async function fetchEuronext(ticker) {
-  const code = EURONEXT_MAP[ticker];
-  if (!code) return null;
-  try {
-    const url = `https://live.euronext.com/en/pd/data/product?d[]=${code}&type=ETF`;
-    const text = await fetchViaProxy(url);
-    if (!text) return null;
-    const d = JSON.parse(text);
-    // Euronext returns array: [{lastPrice: X, currency: "EUR"}]
-    const price = d?.[0]?.lastPrice ?? d?.data?.[0]?.lastPrice;
-    if (price && parseFloat(price) > 0) {
-      console.log('✓ Euronext', ticker, ':', price);
-      return parseFloat(price);
-    }
-  } catch(e) {}
-  return null;
-}
-
-async function fetchBoursorama(symbol) {
-  // Boursorama public API — confirmed open CORS
-  // symbol format: '1uIGLN.L' for IGLN.L (iShares Physical Gold)
-  const urls = [
-    `https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=${symbol}&length=1&adjusted=1&periode=0`,
-    `https://www.boursorama.com/cours/${symbol}/`,
-  ];
-  try {
-    const apiUrl = `https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=${symbol}&length=1&adjusted=1&periode=0`;
-    const text = await fetchViaProxy(apiUrl);
-    if (text) {
-      const d = JSON.parse(text);
-      // Response: {d:{data:[{c:price}]}} or similar
-      const price = d?.d?.data?.[0]?.c || d?.d?.data?.[d?.d?.data?.length-1]?.c;
-      if (price && price > 0) { console.log('Boursorama OK', symbol, price); return parseFloat(price); }
-    }
-  } catch(e) {}
-  return null;
-}
-
-async function fetchETF(ticker, isin) {
-  const tk = (ticker||'').toUpperCase();
-  const etfIsin = isin || ISIN_MAP[tk];
-
-  // Boursorama symbols for hard-to-find ETFs
-  const boursoSymbols = {
-    PPFB: '1uIGLN.L', // iShares Physical Gold ETC — same fund, London listed
-  };
-
-  // 1. Boursorama for PPFB (Blackrock/iShares gold ETC)
-  const boursoSym = boursoSymbols[tk];
-  if (boursoSym) {
-    const price = await fetchBoursorama(boursoSym);
-    if (price) return price;
-  }
-
-  // 2. Yahoo Finance for WPEA, DCAM (confirmed working)
-  const yahooSymbols = { WPEA: 'WPEA.PA', DCAM: 'DCAM.PA' };
-  const yahooFallbacks = { WPEA: ['WPEA.PA','WPEA.AS'], DCAM: ['DCAM.PA'] };
-  const primarySym = yahooSymbols[tk];
-  const toTry = primarySym
-    ? [primarySym, ...(yahooFallbacks[tk]||[]).filter(s=>s!==primarySym)]
-    : [];
-
-  for (const sym of toTry) {
-    try {
-      const url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + sym + '?interval=1d&range=1d';
-      const text = await fetchViaProxy(url);
-      if (text) {
-        const d = JSON.parse(text);
-        const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-        const currency = d?.chart?.result?.[0]?.meta?.currency;
-        if (price && price > 0) {
-          if (currency === 'GBp' || currency === 'GBX') {
-            let gbpEur = 1.18;
-            try {
-              const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',{signal:makeAbortSignal(4000)});
-              if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR||gbpEur; }
-            } catch(e) {}
-            return (price/100)*gbpEur;
-          }
-          return price;
-        }
-      }
-    } catch(e) { continue; }
-  }
-
-  // 3. JustETF fallback
-  if (etfIsin) {
-    const price = await fetchJustETF(etfIsin);
-    if (price) return price;
-  }
-
-  return null;
-}
-
+// ── Single ticker price fetch ──
 async function fetchPrice(ticker, nom) {
   if (!ticker) return null;
   const tk = ticker.toUpperCase();
-  const now = Date.now();
-  if (PRICE_CACHE[tk] && now - PRICE_CACHE[tk].ts < CACHE_TTL) return PRICE_CACHE[tk].price;
+
+  const cached = PRICE_CACHE[tk];
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.price;
 
   let price = null;
   try {
     if (tk === 'BTC') {
       price = await fetchBTC();
     } else if (tk === 'PPFB') {
-      // Try JustETF first (PPFB = iShares Physical Gold ETC)
-      price = await fetchETF(tk, 'IE00B4ND3602');
-      // Fallback: gold spot price × ratio
-      if (!price) {
-        const goldEur = await fetchGold();
-        if (goldEur) {
-          // 1 PPFB share ≈ gold spot / ~100 (rough estimate, actual ratio varies)
-          // Better: use gold spot as-is, user can verify
-          price = goldEur * 0.01;
-          console.log('PPFB estimated from gold spot:', price);
-        }
-      }
+      // Try Boursorama first, then JustETF, then gold estimate
+      price = await fetchBoursorama('1uIGLN.L');
+      if (!price) price = await fetchJustETF('IE00B4ND3602');
+      if (!price) { const g = await fetchGold(); if (g) price = g * 0.01; }
     } else {
-      // Pass ISIN from map if available
-      const isin = ISIN_MAP[tk];
-      price = await fetchETF(tk, isin);
+      // Yahoo Finance for ETFs
+      const yahooMap = { WPEA: 'WPEA.PA', DCAM: 'DCAM.PA' };
+      const sym = yahooMap[tk] || (tk + '.PA');
+      price = await fetchYahoo(sym);
+      if (!price && ISIN_MAP[tk]) price = await fetchJustETF(ISIN_MAP[tk]);
     }
-  } catch(e) {
-    console.warn('Price fetch failed for', ticker, e.message);
-  }
+  } catch(e) {}
 
   if (price && price > 0) {
-    PRICE_CACHE[tk] = {price, ts: now};
-    console.log('✓ Price', tk, price, 'EUR');
-    return price;
+    PRICE_CACHE[tk] = {price, ts: Date.now()};
+    console.log('Price OK', tk, price);
   }
-  console.warn('Price unavailable for', ticker, '— keeping last known value');
-  return null;
+  return price || null;
 }
 
-async function fetchAllBoursePrices() {
-  const positions = computePortfolioFromTx(bourseTx);
-  // Rebuild boursePos aligned with current positions
-  boursePos = positions.map(p => {
-    const ex = boursePos.find(b => b.nom === p.nom || b.ticker === p.ticker);
-    return {...p, pricePerUnit: ex?.pricePerUnit || 0, valeur: ex?.valeur || 0};
+
+// ── Fetch ALL prices in parallel (non-blocking) ──
+async function fetchAllPrices(type) {
+  const bourseTickers = type !== 'exotique'
+    ? computePortfolioFromTx(bourseTx).filter(p => p.ticker && p.support?.toUpperCase() !== 'PERCO')
+    : [];
+  const exoTickers = type !== 'bourse'
+    ? computeExoPortfolioFromTx().filter(p => p.ticker)
+    : [];
+
+  // Store ISINs dynamically
+  [...bourseTickers, ...exoTickers].forEach(p => {
+    if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
   });
 
-  let updated = false;
-  for (let i = 0; i < positions.length; i++) {
-    const p = positions[i];
-    if (!p.ticker || (p.support||'').toUpperCase() === 'PERCO') continue;
-    if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
-    const price = await fetchPrice(p.ticker, p.nom);
-    if (price && price > 0) {
-      boursePos[i].pricePerUnit = price;
-      boursePos[i].valeur = (price * p.qty).toFixed(2);
-      console.log(p.nom, '| price:', price, '| qty:', p.qty, '| total:', boursePos[i].valeur);
-      updated = true;
-    }
-  }
-  if (updated) {
-    save('bo_pos', boursePos);
-    renderBoursePort(); // full re-render needed for PERCO manual field
-    // Update accueil cards without redrawing chart
-    updateHomeCards();
-  }
-}
+  // Fetch ALL tickers simultaneously
+  const allTickers = [
+    ...bourseTickers.map(p => ({...p, _type:'bourse'})),
+    ...exoTickers.map(p => ({...p, _type:'exo'})),
+  ];
 
-async function fetchAllExoPrices() {
-  const positions = computeExoPortfolioFromTx();
-  // Rebuild exoPos aligned with current positions
-  exoPos = positions.map(p => {
-    const ex = exoPos.find(e => e.nom === p.nom || e.ticker === p.ticker);
-    return {...p, pricePerUnit: ex?.pricePerUnit || 0, valeur: ex?.valeur || 0};
+  if (allTickers.length === 0) return;
+
+  // Yield to UI first
+  await new Promise(r => setTimeout(r, 0));
+
+  const results = await Promise.all(
+    allTickers.map(p => fetchPrice(p.ticker, p.nom).then(price => ({p, price})))
+  );
+
+  let boUpdated = false, exoUpdated = false;
+
+  results.forEach(({p, price}) => {
+    if (!price || price <= 0) return;
+    const val = (price * p.qty).toFixed(2);
+
+    if (p._type === 'bourse') {
+      const idx = boursePos.findIndex(b => b.nom === p.nom || b.ticker === p.ticker);
+      if (idx >= 0) { boursePos[idx].pricePerUnit = price; boursePos[idx].valeur = val; }
+      else boursePos.push({...p, pricePerUnit: price, valeur: val});
+      boUpdated = true;
+    } else {
+      const idx = exoPos.findIndex(e => e.nom === p.nom || e.ticker === p.ticker);
+      if (idx >= 0) { exoPos[idx].pricePerUnit = price; exoPos[idx].valeur = val; }
+      else exoPos.push({...p, pricePerUnit: price, valeur: val});
+      exoUpdated = true;
+
+      // Update individual cell if visible
+      const positions = computeExoPortfolioFromTx();
+      const cellIdx = positions.findIndex(pos => pos.nom === p.nom);
+      const cell = $('exo-valcell-' + cellIdx);
+      if (cell) { cell.textContent = fmt(parseFloat(val), 2); cell.classList.remove('loading-cell'); }
+    }
   });
 
-  let updated = false;
-  for (let i = 0; i < positions.length; i++) {
-    const p = positions[i];
-    if (!p.ticker) continue;
-    if (p.isin && p.ticker) ISIN_MAP[p.ticker.toUpperCase()] = p.isin;
-    const price = await fetchPrice(p.ticker, p.nom);
-    if (price && price > 0) {
-      // Store price per unit AND compute total from actual qty
-      exoPos[i].pricePerUnit = price;
-      exoPos[i].valeur = (price * p.qty).toFixed(2);
-      console.log(p.nom, '| price:', price, '| qty:', p.qty, '| total:', exoPos[i].valeur);
-      updated = true;
-    }
-  }
-  if (updated) {
-    save('exo_pos', exoPos);
-    // Update individual cells directly (no full re-render flash)
-    positions.forEach((p, i) => {
-      const cell = $('exo-valcell-' + i);
-      if (cell && exoPos[i]?.pricePerUnit > 0) {
-        const v = exoPos[i].pricePerUnit * p.qty;
-        cell.textContent = fmt(v, 2);
-        cell.classList.remove('loading-cell');
-      }
-    });
-    updateHomeCards(); // cards only — no chart redraw
-  }
+  if (boUpdated) { save('bo_pos', boursePos); renderBoursePort(); }
+  if (exoUpdated) { save('exo_pos', exoPos); }
+  if (boUpdated || exoUpdated) updateHomeCards();
 }
 
+// Legacy wrappers
+async function fetchAllBoursePrices() { await fetchAllPrices('bourse'); }
+async function fetchAllExoPrices() { await fetchAllPrices('exotique'); }
+
+// ── Debug ──
+async function debugPrices() {
+  const out = $('debug-output');
+  out.style.display = 'block';
+  out.textContent = 'Test en cours...\n';
+  const log = msg => { out.textContent += msg + '\n'; };
+  try { const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR',{signal:makeAbortSignal(3000)}); const d=await r.json(); log('BTC: '+d.price); } catch(e){log('BTC err: '+e.message);}
+  const tests = [
+    ['WPEA Yahoo', 'https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d'],
+    ['DCAM Yahoo', 'https://query2.finance.yahoo.com/v8/finance/chart/DCAM.PA?interval=1d&range=1d'],
+    ['PPFB Boursorama', 'https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=1uIGLN.L&length=1&adjusted=1&periode=0'],
+    ['PPFB JustETF', 'https://www.justetf.com/api/etfs/IE00B4ND3602/quote?locale=fr&currency=EUR'],
+  ];
+  for (const [label, url] of tests) {
+    const text = await fetchViaProxy(url);
+    log(label+': '+(text ? text.substring(0,100) : 'FAIL'));
+  }
+  log('--- Fin ---');
+}
 
 // ─── SETTINGS : EXPORT / IMPORT / RESET ──────
 function exportData() {
