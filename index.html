@@ -564,7 +564,7 @@
               <th>PRU</th>
               <th>Vol.</th>
               <th>Montant</th>
-              <th>Abond.</th>
+              <th>Abondement</th>
               <th></th>
             </tr>
           </thead>
@@ -645,7 +645,7 @@
               <th>PRU</th>
               <th>Vol.</th>
               <th>Montant</th>
-              <th>Abond.</th>
+              <th>Abondement</th>
               <th></th>
             </tr>
           </thead>
@@ -1610,7 +1610,8 @@ function renderBoursePort() {
   positions.forEach((p, i) => {
     const pru   = p.cost || 0;
     const vol   = p.qty  || 0;
-    const cout  = pru * vol;
+    const ownQty = p.ownQty || vol; // own parts (excl. abondement)
+    const cout  = pru * ownQty;   // cost based on own parts only
     // PMU from live memory cache (set by API fetch)
     const pmu = LIVE_PRICES[p.nom] || 0;
     const val = pmu > 0 ? pmu * vol : 0;
