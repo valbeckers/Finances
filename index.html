@@ -516,7 +516,7 @@
       <div class="flex-row" style="margin-bottom:12px">
         <div class="page-subtitle">Positions actuelles</div>
         <div style="display:flex;gap:8px">
-          <button class="btn-icon" id="bo-refresh-btn" onclick="testFetchNow()" title="Actualiser les prix">↻</button>
+          <button class="btn-icon" id="bo-refresh-btn" onclick="schedulePriceFetch('bourse')" title="Actualiser les prix">↻</button>
           <button class="btn-icon" onclick="openModal('modal-bourse-pos')">＋</button>
         </div>
       </div>
@@ -1168,11 +1168,11 @@ const SEED = {"ep_data": {"2026-01": {"antid": "200", "prec": "10", "vcelia": "1
 let epargneData   = load('ep_data', SEED.ep_data);
 let creditData    = load('cr_data', SEED.cr_data);
 let boursePerf    = load('bo_perf', SEED.bo_perf);
-let boursePos     = (load('bo_pos', SEED.bo_pos) || []).map(p => ({...p, valeur: 0}));
-let bourseTx      = load('bo_tx',   SEED.bo_tx);
+let boursePos     = SEED.bo_pos.map(p => ({...p})); // always from SEED, no stale localStorage
+let bourseTx      = SEED.bo_tx.map(t => ({...t})); // always from SEED for correct names
 let exoPerf       = load('exo_perf',SEED.exo_perf);
-let exoPos        = (load('exo_pos', SEED.exo_pos) || []).map(p => ({...p, valeur: 0}));
-let exoTx         = load('exo_tx',  SEED.exo_tx);
+let exoPos        = SEED.exo_pos.map(p => ({...p})); // always from SEED
+let exoTx         = SEED.exo_tx.map(t => ({...t})); // always from SEED for correct names
 let revData       = load('rev_data',SEED.rev_data);
 
 // ─── NAVIGATION ──────────────────────────────
@@ -1592,9 +1592,9 @@ function renderBoursePort() {
     const vol   = p.qty  || 0;
     const cout  = pru * vol;
     const stored_b = boursePos.find(b => b.nom === p.nom || (p.ticker && b.ticker === p.ticker)) || {};
-    // PMU = live API price ONLY — never use stale stored valeur
-    const pmu = stored_b.pricePerUnit > 0 ? stored_b.pricePerUnit : 0;
-    // Val = PMU × vol ONLY — shows 0/⏳ until API runs
+    // PMU = unit price from API only
+    const pmu = parseFloat(stored_b.pricePerUnit) || 0;
+    // Val Actu = PMU × Volume — no fallback, both show ⏳ until API runs
     const val = pmu > 0 ? pmu * vol : 0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
@@ -1807,7 +1807,7 @@ function renderExoPort() {
     const vol  = p.qty  || 0;
     const cout = pru * vol;
     const stored = exoPos.find(e => e.nom === p.nom || (p.ticker && e.ticker === p.ticker)) || {};
-    const pmu_exo = stored.pricePerUnit > 0 ? stored.pricePerUnit : 0;
+    const pmu_exo = parseFloat(stored.pricePerUnit) || 0;
     const val = pmu_exo > 0 ? pmu_exo * vol : 0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
