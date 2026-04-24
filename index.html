@@ -531,7 +531,7 @@
               <th>Vol.</th>
               <th>PMU</th>
               <th>Coût total</th>
-              <th>Valeur actuelle</th>
+              <th>Val. Actu.</th>
               <th>Delta</th>
               <th></th>
             </tr>
@@ -612,7 +612,7 @@
               <th>Vol.</th>
               <th>PMU</th>
               <th>Coût total</th>
-              <th>Valeur actuelle</th>
+              <th>Val. Actu.</th>
               <th>Delta</th>
               <th></th>
             </tr>
@@ -1592,25 +1592,24 @@ function renderBoursePort() {
     const vol   = p.qty  || 0;
     const cout  = pru * vol;
     const stored_b = boursePos.find(b => b.nom === p.nom || (p.ticker && b.ticker === p.ticker)) || {};
-    const val = stored_b.pricePerUnit > 0
-      ? stored_b.pricePerUnit * vol
-      : parseFloat(stored_b.valeur)||0;
+    const storedValeur = parseFloat(stored_b.valeur)||0;
+    // PMU = live price per unit from API only (no stale fallback)
+    const pmu = stored_b.pricePerUnit > 0 ? stored_b.pricePerUnit : 0;
+    // Valeur actuelle = PMU × volume if live price, else stored total
+    const val = pmu > 0 ? pmu * vol : storedValeur;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
     totalVal  += val;
-    const isPerco = (p.support||'').toUpperCase() === 'PERCO';
-    const hasLivePrice = stored_b.pricePerUnit > 0;
-    // All positions: show live/calculated value. PERCO shows ⏳ while waiting for API.
-    const valCell = `<span>${val>0?fmt(val,2):(isPerco?'⏳':'⏳')}</span>`;
+
     rows += `<tr>
       <td><span class="chip">${p.support||'—'}</span></td>
       <td>${p.nom}</td>
       <td>${p.ticker||'—'}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(4)}</td>
-      <td>${stored_b.pricePerUnit>0?fmt(stored_b.pricePerUnit,2):'⏳'}</td>
+      <td>${pmu>0?fmt(pmu,2):'⏳'}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
-      <td>${valCell}</td>
+      <td><span>${val>0?fmt(val,2):'⏳'}</span></td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td><button onclick="deleteBoursePos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
     </tr>`;
@@ -1809,10 +1808,9 @@ function renderExoPort() {
     const vol  = p.qty  || 0;
     const cout = pru * vol;
     const stored = exoPos.find(e => e.nom === p.nom || (p.ticker && e.ticker === p.ticker)) || {};
-    // If we have a pricePerUnit from API, recalculate from vol to avoid stale values
-    const val = stored.pricePerUnit > 0
-      ? stored.pricePerUnit * vol
-      : parseFloat(stored.valeur)||0;
+    const storedExoValeur = parseFloat(stored.valeur)||0;
+    const pmu_exo = stored.pricePerUnit > 0 ? stored.pricePerUnit : 0;
+    const val = pmu_exo > 0 ? pmu_exo * vol : storedExoValeur;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
     totalVal  += val;
@@ -1822,7 +1820,7 @@ function renderExoPort() {
       <td>${p.ticker||'—'}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(6)}</td>
-      <td>${stored.pricePerUnit>0?fmt(stored.pricePerUnit,2):'⏳'}</td>
+      <td>${pmu_exo>0?fmt(pmu_exo,2):'⏳'}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
       <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'…'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
@@ -2324,8 +2322,10 @@ async function fetchAllPrices(type) {
 
     if (p._type === 'bourse') {
       const idx = boursePos.findIndex(b => b.nom === p.nom || b.ticker === p.ticker);
-      if (idx >= 0) { boursePos[idx].pricePerUnit = price; boursePos[idx].valeur = val; }
-      else boursePos.push({...p, pricePerUnit: price, valeur: val});
+      if (idx >= 0) {
+        boursePos[idx].pricePerUnit = price;  // live price per unit
+        boursePos[idx].valeur = val;           // live total value
+      } else boursePos.push({...p, pricePerUnit: price, valeur: val});
       boUpdated = true;
     } else {
       const idx = exoPos.findIndex(e => e.nom === p.nom || e.ticker === p.ticker);
@@ -2367,6 +2367,7 @@ async function debugPrices() {
     const text = await fetchViaProxy(url);
     log(label+': '+(text ? text.substring(0,100) : 'FAIL'));
   }
+  await testUrl('Yahoo Avenir', 'https://query2.finance.yahoo.com/v8/finance/chart/0P0000VQ4Q.F?interval=1d&range=1d');
   await testUrl('LesEchos API', 'https://investir.lesechos.fr/api/instrument/QS0004086003/quote');
   await testUrl('LesEchos page', 'https://investir.lesechos.fr/cours/opcvm/avenir-actions-monde-i-qs0004086003');
   log('--- Fin ---');
@@ -2468,6 +2469,7 @@ async function debugPrices() {
   await testUrl('Yahoo WPEA.PA', 'https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d');
   await testUrl('Boursorama IGLN', 'https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=1uIGLN.L&length=1&adjusted=1&periode=0');
   await testUrl('Blackrock PPFB', 'https://www.blackrock.com/fr/intermediaries/products/258441/ishares-physical-gold-etc-fund');
+  await testUrl('Yahoo Avenir', 'https://query2.finance.yahoo.com/v8/finance/chart/0P0000VQ4Q.F?interval=1d&range=1d');
   await testUrl('LesEchos API', 'https://investir.lesechos.fr/api/instrument/QS0004086003/quote');
   await testUrl('LesEchos page', 'https://investir.lesechos.fr/cours/opcvm/avenir-actions-monde-i-qs0004086003');
   log('--- Fin ---');
