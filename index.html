@@ -2101,7 +2101,7 @@ function saveRevenu() {
 const LIVE_PRICES = {}; // ticker/nom -> unit price
 
 const PRICE_CACHE = {};
-const CACHE_TTL = 10 * 60 * 1000; // 10 min
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour cache — prices persist during session // 10 min
 
 // Try multiple CORS proxies in sequence
 
@@ -2129,20 +2129,27 @@ function schedulePriceFetch(type) {
 
 // ── Fetch via proxy: try all 3 in parallel, take first success ──
 async function fetchViaProxy(url) {
-  // Try proxies sequentially — simpler and more reliable than racing
   const proxies = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    `https://corsproxy.org/?${encodeURIComponent(url)}`,
   ];
-  for (const proxyUrl of proxies) {
-    try {
-      const r = await fetch(proxyUrl, {signal: makeAbortSignal(5000)});
-      if (!r.ok) continue;
-      const t = await r.text();
-      if (t && t.length > 10 && !t.startsWith('{"error"')) return t;
-    } catch(e) { continue; }
-  }
-  return null;
+  // Race all proxies simultaneously — first valid response wins
+  return new Promise(resolve => {
+    let resolved = false;
+    let pending = proxies.length;
+    const done = (result) => {
+      if (!resolved && result) { resolved = true; resolve(result); }
+      else { pending--; if (pending === 0 && !resolved) resolve(null); }
+    };
+    proxies.forEach(proxyUrl => {
+      fetch(proxyUrl, {signal: makeAbortSignal(6000)})
+        .then(r => r.ok ? r.text() : null)
+        .then(t => done(t && t.length > 10 && !t.startsWith('{"error"') ? t : null))
+        .catch(() => done(null));
+    });
+    setTimeout(() => { if (!resolved) { resolved = true; resolve(null); } }, 7000);
+  });
 }
 
 // ── BTC via Binance ──
@@ -2285,7 +2292,10 @@ async function fetchPrice(ticker, nom, isin) {
   const tk = (ticker || '').toUpperCase();
 
   const cached = PRICE_CACHE[tk];
-  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.price;
+  if (cached) {
+    if (Date.now() - cached.ts < CACHE_TTL) return cached.price; // fresh cache
+    // Stale cache: try to refresh but fall back to last known price
+  }
 
   let price = null;
   try {
@@ -2296,12 +2306,10 @@ async function fetchPrice(ticker, nom, isin) {
       price = await fetchYahoo('0P0000VQ4Q.F');
       if (!price) price = await fetchLesEchos('QS0004086003');
     } else if (tk === 'PPFB') {
-      // iShares Physical Gold ETC - try Yahoo with multiple symbols
-      for (const sym of ['PPFB.DE', 'PPFB.MI', 'SGLP.L', 'SGLN.L']) {
-        price = await fetchYahoo(sym);
-        if (price) { console.log('PPFB via', sym, price); break; }
-      }
-      // Gold spot fallback (1 PPFB ≈ 0.01 troy oz gold)
+      // iShares Physical Gold ETC (EUR-listed on Xetra = no conversion needed)
+      price = await fetchYahoo('PPFB.DE');
+      if (!price) price = await fetchYahoo('PPFB.MI'); // Milan fallback
+      // Gold spot fallback
       if (!price) { const g = await fetchGold(); if (g) price = g * 0.01; }
     } else {
       // Yahoo Finance for ETFs
@@ -2315,13 +2323,22 @@ async function fetchPrice(ticker, nom, isin) {
   if (price && price > 0) {
     PRICE_CACHE[tk] = {price, ts: Date.now()};
     console.log('Price OK', tk, price);
+    return price;
   }
-  return price || null;
+  // Fetch failed — return last known cached price if available
+  if (PRICE_CACHE[tk]?.price) {
+    console.log('Using cached price for', tk, PRICE_CACHE[tk].price);
+    return PRICE_CACHE[tk].price;
+  }
+  return null;
 }
 
 
 // ── Fetch ALL prices in parallel (non-blocking) ──
+let _fetchRetryTimer = null;
 async function fetchAllPrices(type) {
+  // Clear any pending retry
+  if (_fetchRetryTimer) { clearTimeout(_fetchRetryTimer); _fetchRetryTimer = null; }
   const bourseTickers = type !== 'exotique'
     ? computePortfolioFromTx(bourseTx).filter(p => p.ticker || (p.nom && p.nom.toLowerCase().includes('avenir')) || p.isin === 'QS0004086003')
     : [];
@@ -2373,6 +2390,13 @@ async function fetchAllPrices(type) {
       // Cell updated via renderExoPort() below
     }
   });
+
+  // Check which prices are still missing and retry
+  const stillMissing = allTickers.filter(p => !LIVE_PRICES[p.nom]);
+  if (stillMissing.length > 0) {
+    console.log('Retrying for:', stillMissing.map(p => p.nom));
+    _fetchRetryTimer = setTimeout(() => fetchAllPrices(type), 4000); // retry in 4s
+  }
 
   if (boUpdated) { save('bo_pos', boursePos); renderBoursePort(); }
   if (exoUpdated) { save('exo_pos', exoPos); renderExoPort(); }
