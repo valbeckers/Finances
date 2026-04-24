@@ -529,9 +529,9 @@
               <th>Ticker</th>
               <th>PRU</th>
               <th>Vol.</th>
+              <th>Coût tot.</th>
               <th>PMU</th>
-              <th>Coût total</th>
-              <th>Val. Actu.</th>
+              <th>Val. actu. tot.</th>
               <th>Delta</th>
               <th></th>
             </tr>
@@ -610,9 +610,9 @@
               <th>Ticker</th>
               <th>PRU</th>
               <th>Vol.</th>
+              <th>Coût tot.</th>
               <th>PMU</th>
-              <th>Coût total</th>
-              <th>Val. Actu.</th>
+              <th>Val. actu. tot.</th>
               <th>Delta</th>
               <th></th>
             </tr>
@@ -1168,11 +1168,11 @@ const SEED = {"ep_data": {"2026-01": {"antid": "200", "prec": "10", "vcelia": "1
 let epargneData   = load('ep_data', SEED.ep_data);
 let creditData    = load('cr_data', SEED.cr_data);
 let boursePerf    = load('bo_perf', SEED.bo_perf);
-let boursePos     = SEED.bo_pos.map(p => ({...p})); // always from SEED, no stale localStorage
-let bourseTx      = SEED.bo_tx.map(t => ({...t})); // always from SEED for correct names
+let boursePos     = load('bo_pos', SEED.bo_pos);
+let bourseTx      = load('bo_tx', SEED.bo_tx);
 let exoPerf       = load('exo_perf',SEED.exo_perf);
-let exoPos        = SEED.exo_pos.map(p => ({...p})); // always from SEED
-let exoTx         = SEED.exo_tx.map(t => ({...t})); // always from SEED for correct names
+let exoPos        = load('exo_pos', SEED.exo_pos);
+let exoTx         = load('exo_tx', SEED.exo_tx);
 let revData       = load('rev_data',SEED.rev_data);
 
 // ─── NAVIGATION ──────────────────────────────
@@ -1591,10 +1591,8 @@ function renderBoursePort() {
     const pru   = p.cost || 0;
     const vol   = p.qty  || 0;
     const cout  = pru * vol;
-    const stored_b = boursePos.find(b => b.nom === p.nom || (p.ticker && b.ticker === p.ticker)) || {};
-    // PMU = unit price from API only
-    const pmu = parseFloat(stored_b.pricePerUnit) || 0;
-    // Val Actu = PMU × Volume — no fallback, both show ⏳ until API runs
+    // PMU from live memory cache (set by API fetch)
+    const pmu = LIVE_PRICES[p.nom] || 0;
     const val = pmu > 0 ? pmu * vol : 0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
@@ -1606,8 +1604,8 @@ function renderBoursePort() {
       <td>${p.ticker||'—'}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(4)}</td>
-      <td>${pmu>0?fmt(pmu,2):'⏳'}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
+      <td>${pmu>0?fmt(pmu,2):'⏳'}</td>
       <td><span>${val>0?fmt(val,2):'⏳'}</span></td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td><button onclick="deleteBoursePos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
@@ -1807,7 +1805,7 @@ function renderExoPort() {
     const vol  = p.qty  || 0;
     const cout = pru * vol;
     const stored = exoPos.find(e => e.nom === p.nom || (p.ticker && e.ticker === p.ticker)) || {};
-    const pmu_exo = parseFloat(stored.pricePerUnit) || 0;
+    const pmu_exo = LIVE_PRICES[p.nom] || 0;
     const val = pmu_exo > 0 ? pmu_exo * vol : 0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
@@ -1818,8 +1816,8 @@ function renderExoPort() {
       <td>${p.ticker||'—'}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(6)}</td>
-      <td>${pmu_exo>0?fmt(pmu_exo,2):'⏳'}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
+      <td>${pmu_exo>0?fmt(pmu_exo,2):'⏳'}</td>
       <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'…'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
@@ -2067,6 +2065,10 @@ function saveRevenu() {
 
 
 // ─── LIVE PRICES ─────────────────────────────
+
+// Simple in-memory price store (survives re-renders, resets on page reload → fetch again)
+const LIVE_PRICES = {}; // ticker/nom -> unit price
+
 const PRICE_CACHE = {};
 const CACHE_TTL = 10 * 60 * 1000; // 10 min
 
@@ -2249,8 +2251,7 @@ const ISIN_MAP = {
 
 // ── Single ticker price fetch ──
 async function fetchPrice(ticker, nom, isin) {
-  if (!ticker) return null;
-  const tk = ticker.toUpperCase();
+  const tk = (ticker || '').toUpperCase();
 
   const cached = PRICE_CACHE[tk];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.price;
@@ -2264,14 +2265,12 @@ async function fetchPrice(ticker, nom, isin) {
       price = await fetchYahoo('0P0000VQ4Q.F');
       if (!price) price = await fetchLesEchos('QS0004086003');
     } else if (tk === 'PPFB') {
-      // Boursorama confirmed working (debug: c=91.xx EUR for IGLN.L)
-      price = await fetchBoursorama('1uIGLN.L');
-      // Yahoo fallbacks
-      if (!price) for (const sym of ['PPFB.DE', 'IGLN.L', 'SGLP.L']) {
+      // iShares Physical Gold ETC - try Yahoo with multiple symbols
+      for (const sym of ['PPFB.DE', 'PPFB.MI', 'SGLP.L', 'SGLN.L']) {
         price = await fetchYahoo(sym);
-        if (price) break;
+        if (price) { console.log('PPFB via', sym, price); break; }
       }
-      // Gold spot fallback
+      // Gold spot fallback (1 PPFB ≈ 0.01 troy oz gold)
       if (!price) { const g = await fetchGold(); if (g) price = g * 0.01; }
     } else {
       // Yahoo Finance for ETFs
@@ -2329,27 +2328,23 @@ async function fetchAllPrices(type) {
 
     if (p._type === 'bourse') {
       const idx = boursePos.findIndex(b => b.nom === p.nom || b.ticker === p.ticker);
-      if (idx >= 0) {
-        boursePos[idx].pricePerUnit = price;  // live price per unit
-        boursePos[idx].valeur = val;           // live total value
-      } else boursePos.push({...p, pricePerUnit: price, valeur: val});
+      LIVE_PRICES[p.nom] = price; // store unit price in memory
+      if (idx >= 0) { boursePos[idx].pricePerUnit = price; boursePos[idx].valeur = val; }
+      else boursePos.push({...p, pricePerUnit: price, valeur: val});
       boUpdated = true;
     } else {
       const idx = exoPos.findIndex(e => e.nom === p.nom || e.ticker === p.ticker);
+      LIVE_PRICES[p.nom] = price; // store unit price in memory
       if (idx >= 0) { exoPos[idx].pricePerUnit = price; exoPos[idx].valeur = val; }
       else exoPos.push({...p, pricePerUnit: price, valeur: val});
       exoUpdated = true;
 
-      // Update individual cell if visible
-      const positions = computeExoPortfolioFromTx();
-      const cellIdx = positions.findIndex(pos => pos.nom === p.nom);
-      const cell = $('exo-valcell-' + cellIdx);
-      if (cell) { cell.textContent = fmt(parseFloat(val), 2); cell.classList.remove('loading-cell'); }
+      // Cell updated via renderExoPort() below
     }
   });
 
   if (boUpdated) { save('bo_pos', boursePos); renderBoursePort(); }
-  if (exoUpdated) { save('exo_pos', exoPos); }
+  if (exoUpdated) { save('exo_pos', exoPos); renderExoPort(); }
   if (boUpdated || exoUpdated) updateHomeCards();
 }
 
