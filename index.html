@@ -529,6 +529,7 @@
               <th>Ticker</th>
               <th>PRU</th>
               <th>Vol.</th>
+              <th>PMU</th>
               <th>Coût total</th>
               <th>Valeur actuelle</th>
               <th>Delta</th>
@@ -538,7 +539,7 @@
           <tbody id="bourse-port-tbody"></tbody>
           <tfoot>
             <tr>
-              <td colspan="5">TOTAL</td>
+              <td colspan="6">TOTAL</td>
               <td id="bourse-port-cout">—</td>
               <td id="bourse-port-val">—</td>
               <td id="bourse-port-delta">—</td>
@@ -609,6 +610,7 @@
               <th>Ticker</th>
               <th>PRU</th>
               <th>Vol.</th>
+              <th>PMU</th>
               <th>Coût total</th>
               <th>Valeur actuelle</th>
               <th>Delta</th>
@@ -618,7 +620,7 @@
           <tbody id="exo-port-tbody"></tbody>
           <tfoot>
             <tr>
-              <td colspan="5">TOTAL</td>
+              <td colspan="6">TOTAL</td>
               <td id="exo-port-cout">—</td>
               <td id="exo-port-val">—</td>
               <td id="exo-port-delta">—</td>
@@ -1589,7 +1591,7 @@ function renderBoursePort() {
     const pru   = p.cost || 0;
     const vol   = p.qty  || 0;
     const cout  = pru * vol;
-    const stored_b = boursePos[i] || {};
+    const stored_b = boursePos.find(b => b.nom === p.nom || (p.ticker && b.ticker === p.ticker)) || {};
     const val = stored_b.pricePerUnit > 0
       ? stored_b.pricePerUnit * vol
       : parseFloat(stored_b.valeur)||0;
@@ -1598,15 +1600,15 @@ function renderBoursePort() {
     totalVal  += val;
     const isPerco = (p.support||'').toUpperCase() === 'PERCO';
     const hasLivePrice = stored_b.pricePerUnit > 0;
-    const valCell = (isPerco && !hasLivePrice)
-      ? `<span class="cell-wrap"><input class="cell-input" style="width:68px" type="number" inputmode="decimal" value="${val||''}" placeholder="—" step="0.01" onchange="updateBourseValeur(${i}, this.value)"><span class="cell-euro">€</span></span>`
-      : `<span>${val>0?fmt(val,2):'⏳'}</span>`;
+    // All positions: show live/calculated value. PERCO shows ⏳ while waiting for API.
+    const valCell = `<span>${val>0?fmt(val,2):(isPerco?'⏳':'⏳')}</span>`;
     rows += `<tr>
       <td><span class="chip">${p.support||'—'}</span></td>
       <td>${p.nom}</td>
       <td>${p.ticker||'—'}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(4)}</td>
+      <td>${stored_b.pricePerUnit>0?fmt(stored_b.pricePerUnit,2):'⏳'}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
       <td>${valCell}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
@@ -1624,11 +1626,15 @@ function renderBoursePort() {
 }
 
 function updateBourseValeur(idx, val) {
-  if (!boursePos[idx]) return;
-  boursePos[idx].valeur = val;
+  // idx here is from renderBoursePort loop — find by nom
+  const positions = computePortfolioFromTx(bourseTx);
+  const p = positions[idx];
+  if (!p) return;
+  const bp = boursePos.find(b => b.nom === p.nom);
+  if (bp) { bp.valeur = val; bp.pricePerUnit = 0; } // clear pricePerUnit to keep manual
   save('bo_pos', boursePos);
   renderBoursePort();
-  renderAccueil();
+  updateHomeCards();
 }
 
 function saveBoursePos() {
@@ -1802,7 +1808,7 @@ function renderExoPort() {
     const pru  = p.cost || 0;
     const vol  = p.qty  || 0;
     const cout = pru * vol;
-    const stored = exoPos[i] || {};
+    const stored = exoPos.find(e => e.nom === p.nom || (p.ticker && e.ticker === p.ticker)) || {};
     // If we have a pricePerUnit from API, recalculate from vol to avoid stale values
     const val = stored.pricePerUnit > 0
       ? stored.pricePerUnit * vol
@@ -1816,6 +1822,7 @@ function renderExoPort() {
       <td>${p.ticker||'—'}</td>
       <td>${pru>0?fmt(pru,2):'—'}</td>
       <td>${vol.toFixed(6)}</td>
+      <td>${stored.pricePerUnit>0?fmt(stored.pricePerUnit,2):'⏳'}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
       <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'…'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
