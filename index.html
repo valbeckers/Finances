@@ -516,7 +516,7 @@
       <div class="flex-row" style="margin-bottom:12px">
         <div class="page-subtitle">Positions actuelles</div>
         <div style="display:flex;gap:8px">
-          <button class="btn-icon" id="bo-refresh-btn" onclick="schedulePriceFetch('bourse')" title="Actualiser les prix">↻</button>
+          <button class="btn-icon" id="bo-refresh-btn" onclick="testFetchNow()" title="Actualiser les prix">↻</button>
           <button class="btn-icon" onclick="openModal('modal-bourse-pos')">＋</button>
         </div>
       </div>
@@ -2397,6 +2397,40 @@ async function debugPrices() {
     log(label + ' (' + sym + '): ' + (price ? '✓ ' + price + '€' : 'FAIL'));
   }
   log('--- Fin ---');
+}
+
+
+async function testFetchNow() {
+  console.log('=== TEST FETCH START ===');
+  
+  // Test 1: direct fetch
+  try {
+    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d');
+    console.log('Fetching:', url.substring(0, 80));
+    const r = await fetch(url);
+    console.log('Response status:', r.status);
+    const t = await r.text();
+    console.log('Response text:', t.substring(0, 200));
+    const d = JSON.parse(t);
+    const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    console.log('WPEA price:', price);
+    
+    if (price) {
+      // Manually update boursePos
+      const pos = computePortfolioFromTx(bourseTx);
+      console.log('Positions:', pos.map(p => p.nom));
+      pos.forEach(p => {
+        if (p.ticker === 'WPEA') {
+          const idx = boursePos.findIndex(b => b.nom === p.nom);
+          console.log('Found WPEA at idx:', idx);
+          if (idx >= 0) { boursePos[idx].pricePerUnit = price; boursePos[idx].valeur = (price * p.qty).toFixed(2); }
+        }
+      });
+      save('bo_pos', boursePos);
+      renderBoursePort();
+      console.log('=== DONE ===');
+    }
+  } catch(e) { console.error('TEST ERROR:', e); }
 }
 
 // ─── SETTINGS : EXPORT / IMPORT / RESET ──────
