@@ -1162,16 +1162,16 @@ function load(key, def) {
 function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 // Default seed data (pre-loaded if localStorage is empty)
-const SEED = {"ep_data": {"2026-01": {"antid": "200", "prec": "10", "vcelia": "10", "secu": "408", "vval": "0", "vac": "0"}, "2026-02": {"antid": "200", "prec": "10", "secu": "1971.34", "vcelia": "10", "vac": "0", "vval": "0"}, "2026-03": {"antid": "200", "prec": "10", "secu": "0", "vcelia": "10", "vval": "0", "vac": "0"}, "2026-04": {"antid": "200", "prec": "10", "secu": "39.53", "vcelia": "10", "vval": "0", "vac": "0"}, "2025-01": {"antid": "200"}, "2025-02": {"antid": "200"}, "2025-03": {"antid": "200"}, "2025-04": {"antid": "200"}, "2025-05": {"antid": "200"}, "2025-06": {"antid": "200"}, "2025-07": {"antid": "200"}, "2025-08": {"antid": "200"}, "2025-09": {"antid": "200"}, "2025-10": {"antid": "200"}, "2025-11": {"antid": "200"}, "2025-12": {"antid": "200"}}, "cr_data": {}, "bo_perf": {}, "bo_pos": [{"nom": "Avenir Actions Monde", "ticker": "", "isin": "QS0004086003", "support": "PERCO", "type": "", "qty": 4.2265, "cost": 106.17753176387082, "valeur": 631.47}, {"nom": "iShares MSCI World", "ticker": "WPEA", "isin": "IE0002XZSHO1", "support": "PEA", "type": "", "qty": 2, "cost": 6.105, "valeur": 0}, {"nom": "Amundi MSCI World", "ticker": "DCAM", "isin": "FR001400U5Q4", "support": "PEA", "type": "", "qty": 2, "cost": 5.4, "valeur": 0}], "bo_tx": [{"date": "2026-03-02", "op": "Achat", "nom": "iShares MSCI World", "ticker": "WPEA", "isin": "IE0002XZSHO1", "support": "PEA", "pru": "6.2", "vol": "1", "montant": "6.2"}, {"date": "2026-04-02", "op": "Achat", "nom": "iShares MSCI World", "ticker": "WPEA", "isin": "IE0002XZSHO1", "support": "PEA", "pru": "6.01", "vol": "1", "montant": "6.01"}, {"date": "2026-04-02", "op": "Achat", "nom": "Amundi MSCI World", "ticker": "DCAM", "isin": "FR001400U5Q4", "support": "PEA", "pru": "5.49", "vol": "1", "montant": "5.49"}, {"date": "2026-03-02", "op": "Achat", "nom": "Amundi MSCI World", "ticker": "DCAM", "isin": "FR001400U5Q4", "support": "PEA", "pru": "5.31", "vol": "1", "montant": "5.31"}, {"date": "2024-12-07", "op": "Achat", "nom": "Avenir Actions Monde", "ticker": "", "isin": "QS0004086003", "support": "PERCO", "pru": "105.38", "vol": "3.7853", "montant": "398.88"}, {"date": "2025-12-10", "op": "Achat", "nom": "Avenir Actions Monde", "ticker": "", "isin": "QS0004086003", "support": "PERCO", "pru": "113.02", "vol": "0.4412", "montant": "49.87"}], "exo_perf": {}, "exo_pos": [{"nom": "Bitcoin", "ticker": "BTC", "type": "Crypto", "qty": 0.000158, "cost": 62671.6964556962, "valeur": 0}, {"nom": "iShares Physical Gold ETC", "ticker": "PPFB", "type": "Or", "qty": 0.064119, "cost": 77.98, "valeur": 0}], "exo_tx": [{"date": "2026-03-16", "op": "Achat", "nom": "Bitcoin", "ticker": "BTC", "type": "Crypto", "pru": "66025.8", "vol": "0.00007500", "montant": "4.95"}, {"date": "2026-04-02", "op": "Achat", "nom": "iShares Physical Gold ETC", "ticker": "PPFB", "type": "Or", "pru": "77.98", "vol": "0.06411900", "montant": "5"}, {"date": "2026-04-02", "op": "Achat", "nom": "Bitcoin", "ticker": "BTC", "type": "Crypto", "pru": "59640.88", "vol": "0.00008300", "montant": "4.95"}], "rev_data": {"2026-01": {"brut": "2500", "nn": "1703.21", "nav": "1824.92", "imp": "121.71", "tr": "171"}, "2026-02": {"brut": "4625.17", "nn": "3191.58", "nav": "3410.9", "imp": "219.32", "tr": "171"}, "2026-03": {"brut": "2500", "nn": "1682.72", "nav": "1805.77", "imp": "123.05", "tr": "171"}, "2025-01": {"brut": "2932.19", "nn": "2110.25", "nav": "2247.65", "imp": "137.4", "tr": "180"}, "2025-02": {"brut": "2500", "nn": "1717.32", "nav": "1834.55", "imp": "117.23", "tr": "162"}, "2025-03": {"brut": "2500", "nn": "1680.68", "nav": "1794.01", "imp": "113.33", "tr": "180"}, "2025-04": {"brut": "2500", "nn": "1695.25", "nav": "1807.74", "imp": "112.49", "tr": "162"}, "2025-05": {"brut": "2500", "nn": "1889.99", "nav": "2043.23", "imp": "153.24", "tr": "117"}, "2025-06": {"brut": "2600", "nn": "1724.32", "nav": "1866.69", "imp": "142.37", "tr": "171"}, "2025-07": {"brut": "2500", "nn": "1732.16", "nav": "1872.03", "imp": "139.87", "tr": "153"}, "2025-08": {"brut": "3991.07", "nn": "2747.93", "nav": "2961.43", "imp": "213.5", "tr": "90"}, "2025-09": {"brut": "2500", "nn": "1644.36", "nav": "1781.66", "imp": "137.3", "tr": "189"}, "2025-10": {"brut": "2500", "nn": "1693.80", "nav": "1833.23", "imp": "139.43", "tr": "162"}, "2025-11": {"brut": "7953.39", "nn": "5547.38", "nav": "5960.91", "imp": "413.53", "tr": "144"}, "2025-12": {"brut": "2800", "nn": "1846.64", "nav": "1994.97", "imp": "148.33", "tr": "117"}, "2024-01": {"brut": "2150", "nn": "1556.93", "nav": "1631.54", "imp": "74.61", "tr": "162"}, "2024-02": {"brut": "7079.83", "nn": "5068.23", "nav": "5293.85", "imp": "225.62", "tr": "180"}, "2024-03": {"brut": "2150", "nn": "1452.03", "nav": "1523.25", "imp": "71.22", "tr": "171"}, "2024-04": {"brut": "2500", "nn": "1741.17", "nav": "1823.22", "imp": "82.05", "tr": "162"}, "2024-05": {"brut": "3761.93", "nn": "2603.50", "nav": "2768.95", "imp": "165.45", "tr": "162"}, "2024-06": {"brut": "2500", "nn": "1709.45", "nav": "1821.1", "imp": "111.65", "tr": "162"}, "2024-07": {"brut": "2500", "nn": "1829.34", "nav": "1948.11", "imp": "118.77", "tr": "171"}, "2024-08": {"brut": "2500", "nn": "2089.92", "nav": "2233.09", "imp": "143.17", "tr": "90"}, "2024-09": {"brut": "2149.45", "nn": "1453.40", "nav": "1554.03", "imp": "100.63", "tr": "72"}, "2024-10": {"brut": "2576.35", "nn": "2137.47", "nav": "2176.7", "imp": "39.23", "tr": "81"}, "2024-11": {"brut": "3953.17", "nn": "3185.29", "nav": "3323.58", "imp": "138.29", "tr": "0"}, "2024-12": {"tr": "0", "nn": "4143.36", "brut": "5090.94", "nav": "4399", "imp": "255.64"}, "2023-01": {"brut": "2506.77", "nn": "1808.32", "nav": "1816.67", "imp": "8.35", "tr": "180"}, "2023-02": {"brut": "2902.70", "nn": "2109.55", "nav": "2119.16", "imp": "9.61", "tr": "180"}, "2023-03": {"brut": "2150", "nn": "1489.54", "nav": "1534.51", "imp": "44.97", "tr": "207"}, "2023-04": {"brut": "2150", "nn": "1514.74", "nav": "1559.71", "imp": "44.97", "tr": "144"}, "2023-05": {"brut": "5008", "nn": "3645.78", "nav": "3748.23", "imp": "102.45", "tr": "117"}, "2023-06": {"brut": "2150", "nn": "1496.74", "nav": "1541.71", "imp": "44.97", "tr": "189"}, "2023-07": {"brut": "2150", "nn": "1500.34", "nav": "1545.31", "imp": "44.97", "tr": "180"}, "2023-08": {"brut": "4458.82", "nn": "3238.03", "nav": "3329.43", "imp": "91.4", "tr": "117"}, "2023-09": {"brut": "2150", "nn": "1511.14", "nav": "1556.11", "imp": "44.97", "tr": "153"}, "2023-10": {"brut": "2150", "nn": "1496.74", "nav": "1541.71", "imp": "44.97", "tr": "189"}, "2023-11": {"brut": "8063.78", "nn": "5883.10", "nav": "6046.99", "imp": "163.89", "tr": "189"}, "2023-12": {"brut": "4700", "nn": "3439.40", "nav": "3537.95", "imp": "98.55", "tr": "135"}, "2022-01": {"brut": "2694.16", "nn": "1847.32", "nav": "1903.62", "imp": "56.3"}, "2022-02": {"brut": "2150", "nn": "1562.52", "nav": "1612.54", "imp": "50.02", "tr": "160"}, "2022-03": {"brut": "2150", "nn": "1484.01", "nav": "1517.61", "imp": "33.6", "tr": "184"}, "2022-04": {"brut": "2150", "nn": "1495.89", "nav": "1562.5", "imp": "66.61", "tr": "136"}, "2022-05": {"brut": "2850", "nn": "2001.94", "nav": "2089.38", "imp": "87.44", "tr": "152"}, "2022-06": {"brut": "2150", "nn": "1510.10", "nav": "1549.7", "imp": "39.6", "tr": "168"}, "2022-07": {"brut": "2150", "nn": "1554.38", "nav": "1587.93", "imp": "33.55", "tr": "120"}, "2022-08": {"brut": "3150", "nn": "2283.00", "nav": "2340.3", "imp": "57.3", "tr": "96"}, "2022-09": {"brut": "2150", "nn": "1506.86", "nav": "1546.47", "imp": "39.61", "tr": "176"}, "2022-10": {"brut": "2150", "nn": "1510.06", "nav": "1549.67", "imp": "39.61", "tr": "168"}, "2022-11": {"brut": "2350", "nn": "1668.50", "nav": "1711.65", "imp": "43.15", "tr": "144"}, "2022-12": {"tr": "135", "nn": "3127.97", "brut": "4300", "nav": "3205.74", "imp": "77.77"}, "2021-01": {"brut": "1247.75", "nn": "1247.75", "nav": "1247.75"}, "2021-02": {"brut": "1286.19", "nn": "1286.19", "nav": "1286.19"}, "2021-03": {"brut": "1161.72", "nn": "1161.72", "nav": "1161.72"}, "2021-04": {"brut": "1286.19", "nn": "1286.19", "nav": "1286.19"}, "2021-05": {"brut": "1244.7", "nn": "1244.70", "nav": "1244.7"}, "2021-06": {"brut": "1286.19", "nn": "1286.19", "nav": "1286.19"}, "2021-07": {"brut": "1487.55", "nn": "1341.35", "nav": "1348.87", "imp": "7.52"}, "2021-08": {"brut": "2396.97", "nn": "1954.18", "nav": "1976.99", "imp": "22.81"}, "2021-09": {"brut": "2387.08", "nn": "1947.07", "nav": "1969.78", "imp": "22.71"}, "2021-10": {"brut": "4652.56", "nn": "3657.04", "nav": "3701.31", "imp": "44.27"}, "2021-11": {"brut": "2085.86", "nn": "1540.79", "nav": "1575.93", "imp": "35.14"}, "2021-12": {"brut": "2226.38", "nn": "1646.07", "nav": "1677.6", "imp": "31.53"}, "2020-01": {"brut": "2333", "nn": "1464.48", "nav": "1464.48", "imp": "", "tr": "180"}, "2020-02": {"brut": "2333", "nn": "1741.60", "nav": "1741.6", "imp": "", "tr": "180"}, "2020-03": {"brut": "2433", "nn": "1855.66", "nav": "1855.66", "imp": "", "tr": "198"}, "2020-04": {"brut": "2343", "nn": "1808.97", "nav": "1808.97", "imp": "", "tr": "180"}, "2020-05": {"brut": "2355.22", "nn": "1683.64", "nav": "1740.37", "imp": "56.73", "tr": "117"}, "2020-06": {"brut": "2333", "nn": "1832.31", "nav": "1894.55", "imp": "62.24", "tr": "171"}, "2020-07": {"brut": "2433", "nn": "1753.60", "nav": "1812.22", "imp": "58.62", "tr": "189"}, "2020-08": {"brut": "2433", "nn": "1789.80", "nav": "1848.42", "imp": "58.62", "tr": "99"}, "2020-09": {"brut": "2333", "nn": "1721.99", "nav": "1778.2", "imp": "56.21", "tr": "190"}, "2020-10": {"brut": "1837.18", "nn": "1092.15", "nav": "1125.93", "imp": "33.78"}, "2020-11": {"brut": "1244.7", "nn": "1244.70", "nav": "1244.7", "imp": ""}, "2020-12": {"brut": "1207.5", "nn": "1207.50", "nav": "1207.5", "imp": ""}}};
+const SEED = {"ep_data": {"2026-01": {"antid": "200", "prec": "10", "vcelia": "10", "secu": "408", "vval": "0", "vac": "0"}, "2026-02": {"antid": "200", "prec": "10", "secu": "1971.34", "vcelia": "10", "vac": "0", "vval": "0"}, "2026-03": {"antid": "200", "prec": "10", "secu": "0", "vcelia": "10", "vval": "0", "vac": "0"}, "2026-04": {"antid": "200", "prec": "10", "secu": "39.53", "vcelia": "10", "vval": "0", "vac": "0"}, "2025-01": {"antid": "200"}, "2025-02": {"antid": "200"}, "2025-03": {"antid": "200"}, "2025-04": {"antid": "200"}, "2025-05": {"antid": "200"}, "2025-06": {"antid": "200"}, "2025-07": {"antid": "200"}, "2025-08": {"antid": "200"}, "2025-09": {"antid": "200"}, "2025-10": {"antid": "200"}, "2025-11": {"antid": "200"}, "2025-12": {"antid": "200"}}, "cr_data": {}, "bo_perf": {}, "bo_pos": [{"nom": "Avenir Actions Monde", "ticker": "", "isin": "QS0004086003", "support": "PERCO", "type": "", "qty": 4.2265, "cost": 106.17753176387082, "valeur": 0}, {"nom": "iShares MSCI World", "ticker": "WPEA", "isin": "IE0002XZSHO1", "support": "PEA", "type": "", "qty": 2, "cost": 6.105, "valeur": 0}, {"nom": "Amundi MSCI World", "ticker": "DCAM", "isin": "FR001400U5Q4", "support": "PEA", "type": "", "qty": 2, "cost": 5.4, "valeur": 0}], "bo_tx": [{"date": "2026-03-02", "op": "Achat", "nom": "iShares MSCI World", "ticker": "WPEA", "isin": "IE0002XZSHO1", "support": "PEA", "pru": "6.2", "vol": "1", "montant": "6.2"}, {"date": "2026-04-02", "op": "Achat", "nom": "iShares MSCI World", "ticker": "WPEA", "isin": "IE0002XZSHO1", "support": "PEA", "pru": "6.01", "vol": "1", "montant": "6.01"}, {"date": "2026-04-02", "op": "Achat", "nom": "Amundi MSCI World", "ticker": "DCAM", "isin": "FR001400U5Q4", "support": "PEA", "pru": "5.49", "vol": "1", "montant": "5.49"}, {"date": "2026-03-02", "op": "Achat", "nom": "Amundi MSCI World", "ticker": "DCAM", "isin": "FR001400U5Q4", "support": "PEA", "pru": "5.31", "vol": "1", "montant": "5.31"}, {"date": "2024-12-07", "op": "Achat", "nom": "Avenir Actions Monde", "ticker": "", "isin": "QS0004086003", "support": "PERCO", "pru": "105.38", "vol": "3.7853", "montant": "398.88"}, {"date": "2025-12-10", "op": "Achat", "nom": "Avenir Actions Monde", "ticker": "", "isin": "QS0004086003", "support": "PERCO", "pru": "113.02", "vol": "0.4412", "montant": "49.87"}], "exo_perf": {}, "exo_pos": [{"nom": "Bitcoin", "ticker": "BTC", "type": "Crypto", "qty": 0.000158, "cost": 62671.6964556962, "valeur": 0}, {"nom": "iShares Physical Gold ETC", "ticker": "PPFB", "type": "Or", "qty": 0.064119, "cost": 77.98, "valeur": 0}], "exo_tx": [{"date": "2026-03-16", "op": "Achat", "nom": "Bitcoin", "ticker": "BTC", "type": "Crypto", "pru": "66025.8", "vol": "0.00007500", "montant": "4.95"}, {"date": "2026-04-02", "op": "Achat", "nom": "iShares Physical Gold ETC", "ticker": "PPFB", "type": "Or", "pru": "77.98", "vol": "0.06411900", "montant": "5"}, {"date": "2026-04-02", "op": "Achat", "nom": "Bitcoin", "ticker": "BTC", "type": "Crypto", "pru": "59640.88", "vol": "0.00008300", "montant": "4.95"}], "rev_data": {"2026-01": {"brut": "2500", "nn": "1703.21", "nav": "1824.92", "imp": "121.71", "tr": "171"}, "2026-02": {"brut": "4625.17", "nn": "3191.58", "nav": "3410.9", "imp": "219.32", "tr": "171"}, "2026-03": {"brut": "2500", "nn": "1682.72", "nav": "1805.77", "imp": "123.05", "tr": "171"}, "2025-01": {"brut": "2932.19", "nn": "2110.25", "nav": "2247.65", "imp": "137.4", "tr": "180"}, "2025-02": {"brut": "2500", "nn": "1717.32", "nav": "1834.55", "imp": "117.23", "tr": "162"}, "2025-03": {"brut": "2500", "nn": "1680.68", "nav": "1794.01", "imp": "113.33", "tr": "180"}, "2025-04": {"brut": "2500", "nn": "1695.25", "nav": "1807.74", "imp": "112.49", "tr": "162"}, "2025-05": {"brut": "2500", "nn": "1889.99", "nav": "2043.23", "imp": "153.24", "tr": "117"}, "2025-06": {"brut": "2600", "nn": "1724.32", "nav": "1866.69", "imp": "142.37", "tr": "171"}, "2025-07": {"brut": "2500", "nn": "1732.16", "nav": "1872.03", "imp": "139.87", "tr": "153"}, "2025-08": {"brut": "3991.07", "nn": "2747.93", "nav": "2961.43", "imp": "213.5", "tr": "90"}, "2025-09": {"brut": "2500", "nn": "1644.36", "nav": "1781.66", "imp": "137.3", "tr": "189"}, "2025-10": {"brut": "2500", "nn": "1693.80", "nav": "1833.23", "imp": "139.43", "tr": "162"}, "2025-11": {"brut": "7953.39", "nn": "5547.38", "nav": "5960.91", "imp": "413.53", "tr": "144"}, "2025-12": {"brut": "2800", "nn": "1846.64", "nav": "1994.97", "imp": "148.33", "tr": "117"}, "2024-01": {"brut": "2150", "nn": "1556.93", "nav": "1631.54", "imp": "74.61", "tr": "162"}, "2024-02": {"brut": "7079.83", "nn": "5068.23", "nav": "5293.85", "imp": "225.62", "tr": "180"}, "2024-03": {"brut": "2150", "nn": "1452.03", "nav": "1523.25", "imp": "71.22", "tr": "171"}, "2024-04": {"brut": "2500", "nn": "1741.17", "nav": "1823.22", "imp": "82.05", "tr": "162"}, "2024-05": {"brut": "3761.93", "nn": "2603.50", "nav": "2768.95", "imp": "165.45", "tr": "162"}, "2024-06": {"brut": "2500", "nn": "1709.45", "nav": "1821.1", "imp": "111.65", "tr": "162"}, "2024-07": {"brut": "2500", "nn": "1829.34", "nav": "1948.11", "imp": "118.77", "tr": "171"}, "2024-08": {"brut": "2500", "nn": "2089.92", "nav": "2233.09", "imp": "143.17", "tr": "90"}, "2024-09": {"brut": "2149.45", "nn": "1453.40", "nav": "1554.03", "imp": "100.63", "tr": "72"}, "2024-10": {"brut": "2576.35", "nn": "2137.47", "nav": "2176.7", "imp": "39.23", "tr": "81"}, "2024-11": {"brut": "3953.17", "nn": "3185.29", "nav": "3323.58", "imp": "138.29", "tr": "0"}, "2024-12": {"tr": "0", "nn": "4143.36", "brut": "5090.94", "nav": "4399", "imp": "255.64"}, "2023-01": {"brut": "2506.77", "nn": "1808.32", "nav": "1816.67", "imp": "8.35", "tr": "180"}, "2023-02": {"brut": "2902.70", "nn": "2109.55", "nav": "2119.16", "imp": "9.61", "tr": "180"}, "2023-03": {"brut": "2150", "nn": "1489.54", "nav": "1534.51", "imp": "44.97", "tr": "207"}, "2023-04": {"brut": "2150", "nn": "1514.74", "nav": "1559.71", "imp": "44.97", "tr": "144"}, "2023-05": {"brut": "5008", "nn": "3645.78", "nav": "3748.23", "imp": "102.45", "tr": "117"}, "2023-06": {"brut": "2150", "nn": "1496.74", "nav": "1541.71", "imp": "44.97", "tr": "189"}, "2023-07": {"brut": "2150", "nn": "1500.34", "nav": "1545.31", "imp": "44.97", "tr": "180"}, "2023-08": {"brut": "4458.82", "nn": "3238.03", "nav": "3329.43", "imp": "91.4", "tr": "117"}, "2023-09": {"brut": "2150", "nn": "1511.14", "nav": "1556.11", "imp": "44.97", "tr": "153"}, "2023-10": {"brut": "2150", "nn": "1496.74", "nav": "1541.71", "imp": "44.97", "tr": "189"}, "2023-11": {"brut": "8063.78", "nn": "5883.10", "nav": "6046.99", "imp": "163.89", "tr": "189"}, "2023-12": {"brut": "4700", "nn": "3439.40", "nav": "3537.95", "imp": "98.55", "tr": "135"}, "2022-01": {"brut": "2694.16", "nn": "1847.32", "nav": "1903.62", "imp": "56.3"}, "2022-02": {"brut": "2150", "nn": "1562.52", "nav": "1612.54", "imp": "50.02", "tr": "160"}, "2022-03": {"brut": "2150", "nn": "1484.01", "nav": "1517.61", "imp": "33.6", "tr": "184"}, "2022-04": {"brut": "2150", "nn": "1495.89", "nav": "1562.5", "imp": "66.61", "tr": "136"}, "2022-05": {"brut": "2850", "nn": "2001.94", "nav": "2089.38", "imp": "87.44", "tr": "152"}, "2022-06": {"brut": "2150", "nn": "1510.10", "nav": "1549.7", "imp": "39.6", "tr": "168"}, "2022-07": {"brut": "2150", "nn": "1554.38", "nav": "1587.93", "imp": "33.55", "tr": "120"}, "2022-08": {"brut": "3150", "nn": "2283.00", "nav": "2340.3", "imp": "57.3", "tr": "96"}, "2022-09": {"brut": "2150", "nn": "1506.86", "nav": "1546.47", "imp": "39.61", "tr": "176"}, "2022-10": {"brut": "2150", "nn": "1510.06", "nav": "1549.67", "imp": "39.61", "tr": "168"}, "2022-11": {"brut": "2350", "nn": "1668.50", "nav": "1711.65", "imp": "43.15", "tr": "144"}, "2022-12": {"tr": "135", "nn": "3127.97", "brut": "4300", "nav": "3205.74", "imp": "77.77"}, "2021-01": {"brut": "1247.75", "nn": "1247.75", "nav": "1247.75"}, "2021-02": {"brut": "1286.19", "nn": "1286.19", "nav": "1286.19"}, "2021-03": {"brut": "1161.72", "nn": "1161.72", "nav": "1161.72"}, "2021-04": {"brut": "1286.19", "nn": "1286.19", "nav": "1286.19"}, "2021-05": {"brut": "1244.7", "nn": "1244.70", "nav": "1244.7"}, "2021-06": {"brut": "1286.19", "nn": "1286.19", "nav": "1286.19"}, "2021-07": {"brut": "1487.55", "nn": "1341.35", "nav": "1348.87", "imp": "7.52"}, "2021-08": {"brut": "2396.97", "nn": "1954.18", "nav": "1976.99", "imp": "22.81"}, "2021-09": {"brut": "2387.08", "nn": "1947.07", "nav": "1969.78", "imp": "22.71"}, "2021-10": {"brut": "4652.56", "nn": "3657.04", "nav": "3701.31", "imp": "44.27"}, "2021-11": {"brut": "2085.86", "nn": "1540.79", "nav": "1575.93", "imp": "35.14"}, "2021-12": {"brut": "2226.38", "nn": "1646.07", "nav": "1677.6", "imp": "31.53"}, "2020-01": {"brut": "2333", "nn": "1464.48", "nav": "1464.48", "imp": "", "tr": "180"}, "2020-02": {"brut": "2333", "nn": "1741.60", "nav": "1741.6", "imp": "", "tr": "180"}, "2020-03": {"brut": "2433", "nn": "1855.66", "nav": "1855.66", "imp": "", "tr": "198"}, "2020-04": {"brut": "2343", "nn": "1808.97", "nav": "1808.97", "imp": "", "tr": "180"}, "2020-05": {"brut": "2355.22", "nn": "1683.64", "nav": "1740.37", "imp": "56.73", "tr": "117"}, "2020-06": {"brut": "2333", "nn": "1832.31", "nav": "1894.55", "imp": "62.24", "tr": "171"}, "2020-07": {"brut": "2433", "nn": "1753.60", "nav": "1812.22", "imp": "58.62", "tr": "189"}, "2020-08": {"brut": "2433", "nn": "1789.80", "nav": "1848.42", "imp": "58.62", "tr": "99"}, "2020-09": {"brut": "2333", "nn": "1721.99", "nav": "1778.2", "imp": "56.21", "tr": "190"}, "2020-10": {"brut": "1837.18", "nn": "1092.15", "nav": "1125.93", "imp": "33.78"}, "2020-11": {"brut": "1244.7", "nn": "1244.70", "nav": "1244.7", "imp": ""}, "2020-12": {"brut": "1207.5", "nn": "1207.50", "nav": "1207.5", "imp": ""}}};
 
 // Data stores
 let epargneData   = load('ep_data', SEED.ep_data);
 let creditData    = load('cr_data', SEED.cr_data);
 let boursePerf    = load('bo_perf', SEED.bo_perf);
-let boursePos     = load('bo_pos',  SEED.bo_pos);
+let boursePos     = (load('bo_pos', SEED.bo_pos) || []).map(p => ({...p, valeur: 0}));
 let bourseTx      = load('bo_tx',   SEED.bo_tx);
 let exoPerf       = load('exo_perf',SEED.exo_perf);
-let exoPos        = load('exo_pos', SEED.exo_pos);
+let exoPos        = (load('exo_pos', SEED.exo_pos) || []).map(p => ({...p, valeur: 0}));
 let exoTx         = load('exo_tx',  SEED.exo_tx);
 let revData       = load('rev_data',SEED.rev_data);
 
@@ -1592,13 +1592,10 @@ function renderBoursePort() {
     const vol   = p.qty  || 0;
     const cout  = pru * vol;
     const stored_b = boursePos.find(b => b.nom === p.nom || (p.ticker && b.ticker === p.ticker)) || {};
-    const storedValeur = parseFloat(stored_b.valeur)||0;
-    // PMU = live API price, or derive from stored total / vol
-    const pmu = stored_b.pricePerUnit > 0
-      ? stored_b.pricePerUnit
-      : (vol > 0 && storedValeur > 0 ? storedValeur / vol : 0);
-    // Valeur actuelle = PMU × volume
-    const val = pmu > 0 ? pmu * vol : storedValeur;
+    // PMU = live API price ONLY — never use stale stored valeur
+    const pmu = stored_b.pricePerUnit > 0 ? stored_b.pricePerUnit : 0;
+    // Val = PMU × vol ONLY — shows 0/⏳ until API runs
+    const val = pmu > 0 ? pmu * vol : 0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
     totalVal  += val;
@@ -1810,11 +1807,8 @@ function renderExoPort() {
     const vol  = p.qty  || 0;
     const cout = pru * vol;
     const stored = exoPos.find(e => e.nom === p.nom || (p.ticker && e.ticker === p.ticker)) || {};
-    const storedExoValeur = parseFloat(stored.valeur)||0;
-    const pmu_exo = stored.pricePerUnit > 0
-      ? stored.pricePerUnit
-      : (vol > 0 && storedExoValeur > 0 ? storedExoValeur / vol : 0);
-    const val = pmu_exo > 0 ? pmu_exo * vol : storedExoValeur;
+    const pmu_exo = stored.pricePerUnit > 0 ? stored.pricePerUnit : 0;
+    const val = pmu_exo > 0 ? pmu_exo * vol : 0;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
     totalVal  += val;
@@ -2102,25 +2096,20 @@ function schedulePriceFetch(type) {
 
 // ── Fetch via proxy: try all 3 in parallel, take first success ──
 async function fetchViaProxy(url) {
-  // Free CORS proxies — no key required
+  // Try proxies sequentially — simpler and more reliable than racing
   const proxies = [
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.org/?${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
-  try {
-    const result = await Promise.race(
-      proxies.map(proxyUrl =>
-        fetch(proxyUrl, {signal: makeAbortSignal(4000)})
-          .then(r => r.ok ? r.text() : Promise.reject('not ok'))
-          .then(t => (t && t.length > 10 && !t.includes('"error"')) ? t : Promise.reject('bad'))
-          .catch(() => new Promise(() => {}))
-      ).concat([
-        new Promise(resolve => setTimeout(() => resolve(null), 5000))
-      ])
-    );
-    return result || null;
-  } catch(e) { return null; }
+  for (const proxyUrl of proxies) {
+    try {
+      const r = await fetch(proxyUrl, {signal: makeAbortSignal(5000)});
+      if (!r.ok) continue;
+      const t = await r.text();
+      if (t && t.length > 10 && !t.startsWith('{"error"')) return t;
+    } catch(e) { continue; }
+  }
+  return null;
 }
 
 // ── BTC via Binance ──
@@ -2198,8 +2187,14 @@ async function fetchBoursorama(symbol) {
     const text = await fetchViaProxy(url);
     if (text) {
       const d = JSON.parse(text);
-      const price = d?.d?.data?.[0]?.c || d?.d?.data?.[d?.d?.data?.length-1]?.c;
-      if (price && price > 0) return parseFloat(price);
+      // Response format confirmed: {d: {qv: {c: price, o: open, h: high, l: low}}}
+      const price = d?.d?.qv?.c          // close price (confirmed from debug)
+        || d?.d?.data?.[0]?.c
+        || d?.d?.data?.[d?.d?.data?.length-1]?.c;
+      if (price && parseFloat(price) > 0) {
+        console.log('Boursorama OK', symbol, price);
+        return parseFloat(price);
+      }
     }
   } catch(e) {}
   return null;
@@ -2224,23 +2219,24 @@ async function fetchYahoo(symbol) {
   try {
     const url = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
     const text = await fetchViaProxy(url);
-    if (text) {
-      const d = JSON.parse(text);
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      const currency = d?.chart?.result?.[0]?.meta?.currency;
-      if (price && price > 0) {
-        if (currency === 'GBp' || currency === 'GBX') {
-          let gbpEur = 1.18;
-          try {
-            const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',{signal:makeAbortSignal(2000)});
-            if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
-          } catch(e) {}
-          return (price/100) * gbpEur;
-        }
-        return price;
+    if (!text) { console.warn('fetchYahoo: no text for', symbol); return null; }
+    const d = JSON.parse(text);
+    const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    const currency = d?.chart?.result?.[0]?.meta?.currency;
+    if (price && price > 0) {
+      console.log('fetchYahoo OK', symbol, price, currency);
+      if (currency === 'GBp' || currency === 'GBX') {
+        let gbpEur = 1.18;
+        try {
+          const fx = await fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR',{signal:makeAbortSignal(2000)});
+          if (fx.ok) { const fxd = await fx.json(); gbpEur = fxd?.rates?.EUR || gbpEur; }
+        } catch(e) {}
+        return (price/100) * gbpEur;
       }
+      return price;
     }
-  } catch(e) {}
+    console.warn('fetchYahoo: no price in response for', symbol, JSON.stringify(d).substring(0,100));
+  } catch(e) { console.warn('fetchYahoo error', symbol, e.message); }
   return null;
 }
 
@@ -2252,7 +2248,7 @@ const ISIN_MAP = {
 };
 
 // ── Single ticker price fetch ──
-async function fetchPrice(ticker, nom) {
+async function fetchPrice(ticker, nom, isin) {
   if (!ticker) return null;
   const tk = ticker.toUpperCase();
 
@@ -2263,17 +2259,19 @@ async function fetchPrice(ticker, nom) {
   try {
     if (tk === 'BTC') {
       price = await fetchBTC();
-    } else if (nom && nom.toLowerCase().includes('avenir')) {
-      // PERCO: Avenir Actions Monde — Yahoo Finance first (more reliable), LesEchos backup
+    } else if (nom && (nom.toLowerCase().includes('avenir') || isin === 'QS0004086003')) {
+      // PERCO: Avenir Actions Monde — Yahoo confirmed working
       price = await fetchYahoo('0P0000VQ4Q.F');
       if (!price) price = await fetchLesEchos('QS0004086003');
     } else if (tk === 'PPFB') {
-      // Yahoo Finance with multiple symbols for iShares Physical Gold ETC
-      for (const sym of ['PPFB.DE', 'IGLN.L', 'SGLP.L', 'SGLN.L']) {
+      // Boursorama confirmed working (debug: c=91.xx EUR for IGLN.L)
+      price = await fetchBoursorama('1uIGLN.L');
+      // Yahoo fallbacks
+      if (!price) for (const sym of ['PPFB.DE', 'IGLN.L', 'SGLP.L']) {
         price = await fetchYahoo(sym);
         if (price) break;
       }
-      // Fallback: gold spot price
+      // Gold spot fallback
       if (!price) { const g = await fetchGold(); if (g) price = g * 0.01; }
     } else {
       // Yahoo Finance for ETFs
@@ -2295,7 +2293,7 @@ async function fetchPrice(ticker, nom) {
 // ── Fetch ALL prices in parallel (non-blocking) ──
 async function fetchAllPrices(type) {
   const bourseTickers = type !== 'exotique'
-    ? computePortfolioFromTx(bourseTx).filter(p => p.ticker || (p.nom && p.nom.toLowerCase().includes('avenir')))
+    ? computePortfolioFromTx(bourseTx).filter(p => p.ticker || (p.nom && p.nom.toLowerCase().includes('avenir')) || p.isin === 'QS0004086003')
     : [];
   const exoTickers = type !== 'bourse'
     ? computeExoPortfolioFromTx().filter(p => p.ticker)
@@ -2312,18 +2310,20 @@ async function fetchAllPrices(type) {
     ...exoTickers.map(p => ({...p, _type:'exo'})),
   ];
 
-  if (allTickers.length === 0) return;
+  console.log('fetchAllPrices: fetching', allTickers.map(p=>p.nom||p.ticker));
+  if (allTickers.length === 0) { console.warn('fetchAllPrices: no tickers found'); return; }
 
   // Yield to UI first
   await new Promise(r => setTimeout(r, 0));
 
   const results = await Promise.all(
-    allTickers.map(p => fetchPrice(p.ticker, p.nom).then(price => ({p, price})))
+    allTickers.map(p => fetchPrice(p.ticker, p.nom, p.isin).then(price => ({p, price})))
   );
 
   let boUpdated = false, exoUpdated = false;
 
   results.forEach(({p, price}) => {
+    console.log('fetchAllPrices result', p.nom||p.ticker, price);
     if (!price || price <= 0) return;
     const val = (price * p.qty).toFixed(2);
 
@@ -2568,6 +2568,32 @@ document.addEventListener('focusin', e => {
 
 
 // double-tap zoom disabled via viewport meta only
+
+
+// ── One-time migration: clear stale valeur so API prices show correctly ──
+(function() {
+  try {
+    const pos = JSON.parse(localStorage.getItem('bo_pos') || '[]');
+    let changed = false;
+    pos.forEach(p => {
+      if (p.valeur && !p.pricePerUnit) {
+        p.valeur = 0; // clear stale manual value
+        changed = true;
+      }
+    });
+    if (changed) localStorage.setItem('bo_pos', JSON.stringify(pos));
+
+    const epos = JSON.parse(localStorage.getItem('exo_pos') || '[]');
+    let echanged = false;
+    epos.forEach(p => {
+      if (p.valeur && !p.pricePerUnit) {
+        p.valeur = 0;
+        echanged = true;
+      }
+    });
+    if (echanged) localStorage.setItem('exo_pos', JSON.stringify(epos));
+  } catch(e) {}
+})();
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
