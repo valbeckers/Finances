@@ -1593,9 +1593,11 @@ function renderBoursePort() {
     const cout  = pru * vol;
     const stored_b = boursePos.find(b => b.nom === p.nom || (p.ticker && b.ticker === p.ticker)) || {};
     const storedValeur = parseFloat(stored_b.valeur)||0;
-    // PMU = live price per unit from API only (no stale fallback)
-    const pmu = stored_b.pricePerUnit > 0 ? stored_b.pricePerUnit : 0;
-    // Valeur actuelle = PMU × volume if live price, else stored total
+    // PMU = live API price, or derive from stored total / vol
+    const pmu = stored_b.pricePerUnit > 0
+      ? stored_b.pricePerUnit
+      : (vol > 0 && storedValeur > 0 ? storedValeur / vol : 0);
+    // Valeur actuelle = PMU × volume
     const val = pmu > 0 ? pmu * vol : storedValeur;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
@@ -1809,7 +1811,9 @@ function renderExoPort() {
     const cout = pru * vol;
     const stored = exoPos.find(e => e.nom === p.nom || (p.ticker && e.ticker === p.ticker)) || {};
     const storedExoValeur = parseFloat(stored.valeur)||0;
-    const pmu_exo = stored.pricePerUnit > 0 ? stored.pricePerUnit : 0;
+    const pmu_exo = stored.pricePerUnit > 0
+      ? stored.pricePerUnit
+      : (vol > 0 && storedExoValeur > 0 ? storedExoValeur / vol : 0);
     const val = pmu_exo > 0 ? pmu_exo * vol : storedExoValeur;
     const delta = val > 0 ? val - cout : null;
     totalCout += cout;
@@ -2098,21 +2102,21 @@ function schedulePriceFetch(type) {
 
 // ── Fetch via proxy: try all 3 in parallel, take first success ──
 async function fetchViaProxy(url) {
+  // Free CORS proxies — no key required
   const proxies = [
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.org/?${encodeURIComponent(url)}`,
   ];
-  // Race all proxies simultaneously — fastest wins
   try {
     const result = await Promise.race(
       proxies.map(proxyUrl =>
-        fetch(proxyUrl, {signal: makeAbortSignal(3000)})
+        fetch(proxyUrl, {signal: makeAbortSignal(4000)})
           .then(r => r.ok ? r.text() : Promise.reject('not ok'))
-          .then(t => (t && t.length > 10) ? t : Promise.reject('empty'))
-          .catch(() => new Promise(() => {})) // never reject — just hang
+          .then(t => (t && t.length > 10 && !t.includes('"error"')) ? t : Promise.reject('bad'))
+          .catch(() => new Promise(() => {}))
       ).concat([
-        // Overall timeout: if all proxies fail within 4s, return null
-        new Promise(resolve => setTimeout(() => resolve(null), 4000))
+        new Promise(resolve => setTimeout(() => resolve(null), 5000))
       ])
     );
     return result || null;
@@ -2264,9 +2268,12 @@ async function fetchPrice(ticker, nom) {
       price = await fetchYahoo('0P0000VQ4Q.F');
       if (!price) price = await fetchLesEchos('QS0004086003');
     } else if (tk === 'PPFB') {
-      // Try Boursorama first, then JustETF, then gold estimate
-      price = await fetchBoursorama('1uIGLN.L');
-      if (!price) price = await fetchJustETF('IE00B4ND3602');
+      // Yahoo Finance with multiple symbols for iShares Physical Gold ETC
+      for (const sym of ['PPFB.DE', 'IGLN.L', 'SGLP.L', 'SGLN.L']) {
+        price = await fetchYahoo(sym);
+        if (price) break;
+      }
+      // Fallback: gold spot price
       if (!price) { const g = await fetchGold(); if (g) price = g * 0.01; }
     } else {
       // Yahoo Finance for ETFs
@@ -2356,20 +2363,39 @@ async function debugPrices() {
   out.style.display = 'block';
   out.textContent = 'Test en cours...\n';
   const log = msg => { out.textContent += msg + '\n'; };
-  try { const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR',{signal:makeAbortSignal(3000)}); const d=await r.json(); log('BTC: '+d.price); } catch(e){log('BTC err: '+e.message);}
-  const tests = [
-    ['WPEA Yahoo', 'https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d'],
-    ['DCAM Yahoo', 'https://query2.finance.yahoo.com/v8/finance/chart/DCAM.PA?interval=1d&range=1d'],
-    ['PPFB Boursorama', 'https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=1uIGLN.L&length=1&adjusted=1&periode=0'],
-    ['PPFB JustETF', 'https://www.justetf.com/api/etfs/IE00B4ND3602/quote?locale=fr&currency=EUR'],
-  ];
-  for (const [label, url] of tests) {
-    const text = await fetchViaProxy(url);
-    log(label+': '+(text ? text.substring(0,100) : 'FAIL'));
+
+  // Test BTC (direct, no proxy)
+  try {
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCEUR', {signal: makeAbortSignal(4000)});
+    const d = await r.json();
+    log('BTC Binance: ' + d.price + ' EUR');
+  } catch(e) { log('BTC: ' + e.message); }
+
+  // Test each proxy with WPEA
+  const testUrl = 'https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d';
+  for (const [name, proxy] of [
+    ['codetabs', `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(testUrl)}`],
+    ['allorigins', `https://api.allorigins.win/raw?url=${encodeURIComponent(testUrl)}`],
+    ['corsproxy.org', `https://corsproxy.org/?${encodeURIComponent(testUrl)}`],
+  ]) {
+    try {
+      const r = await fetch(proxy, {signal: makeAbortSignal(5000)});
+      const t = await r.text();
+      const d = JSON.parse(t);
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      log(name + ': ' + (price ? '✓ WPEA=' + price + '€' : 'no price'));
+    } catch(e) { log(name + ': ' + e.message); }
   }
-  await testUrl('Yahoo Avenir', 'https://query2.finance.yahoo.com/v8/finance/chart/0P0000VQ4Q.F?interval=1d&range=1d');
-  await testUrl('LesEchos API', 'https://investir.lesechos.fr/api/instrument/QS0004086003/quote');
-  await testUrl('LesEchos page', 'https://investir.lesechos.fr/cours/opcvm/avenir-actions-monde-i-qs0004086003');
+
+  // Test key Yahoo symbols via fetchViaProxy
+  for (const [label, sym] of [
+    ['WPEA', 'WPEA.PA'], ['DCAM', 'DCAM.PA'],
+    ['Avenir', '0P0000VQ4Q.F'],
+    ['PPFB.DE', 'PPFB.DE'], ['IGLN.L', 'IGLN.L'],
+  ]) {
+    const price = await fetchYahoo(sym);
+    log(label + ' (' + sym + '): ' + (price ? '✓ ' + price + '€' : 'FAIL'));
+  }
   log('--- Fin ---');
 }
 
@@ -2452,7 +2478,7 @@ async function debugPrices() {
 
   const testUrl = async (label, url) => {
     try {
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
       const r = await fetch(proxyUrl, {signal: makeAbortSignal(7000)});
       const text = await r.text();
       log(`${label} (${r.status}): ${text.substring(0,120)}`);
