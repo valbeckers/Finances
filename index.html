@@ -1575,7 +1575,7 @@ function computePortfolioFromTx(txList) {
     if (!positions[nom]) positions[nom] = {
       nom: tx.nom, ticker: tx.ticker, isin: tx.isin||'',
       support: tx.support||'', type: tx.type||'',
-      qty: 0, cost: 0, valeur: 0
+      qty: 0, cost: 0, valeur: 0, ownQty: 0, abondTotal: 0
     };
     const p = positions[nom];
     const v = parseFloat(tx.vol)||0;
