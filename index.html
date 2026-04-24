@@ -937,6 +937,10 @@
         </select>
       </div>
       <div class="form-group">
+        <label>Support</label>
+        <select id="bo-tx-support"><option>PEA</option><option>PERCO</option></select>
+      </div>
+      <div class="form-group">
         <label>Titre</label>
         <input type="text" id="bo-tx-nom" placeholder="Nom du titre">
       </div>
@@ -956,16 +960,15 @@
         <label>Volume</label>
         <input type="number" id="bo-tx-vol" placeholder="0" step="0.001" inputmode="decimal" oninput="calcBoMontant()">
       </div>
-      <div class="form-group full">
-        <label>Montant total (€)</label>
-        <input type="number" id="bo-tx-montant" placeholder="0.00" step="0.01">
-      </div>
+      
+    </div>
+    <div class="form-grid">
       <div class="form-group">
-        <label>Support</label>
-        <select id="bo-tx-support"><option>PEA</option><option>PERCO</option></select>
+        <label>Montant total (€)</label>
+        <input type="number" id="bo-tx-montant" placeholder="0.00" step="0.01" inputmode="decimal" pattern="[0-9]*">
       </div>
-      <div class="form-group full" id="bo-tx-abond-wrap" style="display:none">
-        <label>Abondement employeur (parts) — optionnel</label>
+      <div class="form-group" id="bo-tx-abond-wrap" style="display:none">
+        <label>Abondement (parts)</label>
         <input type="number" id="bo-tx-abond" placeholder="0" step="0.0001" inputmode="decimal">
       </div>
     </div>
@@ -1184,10 +1187,13 @@ let epargneData   = load('ep_data', SEED.ep_data);
 let creditData    = load('cr_data', SEED.cr_data);
 let boursePerf    = load('bo_perf', SEED.bo_perf);
 let boursePos     = load('bo_pos', SEED.bo_pos);
-let bourseTx      = load('bo_tx', SEED.bo_tx);
+// Always start from SEED for correct names; user can add new tx which get saved
+let bourseTx      = SEED.bo_tx.map(t => ({...t}));
+try { const saved = JSON.parse(localStorage.getItem('bo_tx')); if (saved && saved.length > SEED.bo_tx.length) bourseTx = saved; } catch(e) {}
 let exoPerf       = load('exo_perf',SEED.exo_perf);
 let exoPos        = load('exo_pos', SEED.exo_pos);
-let exoTx         = load('exo_tx', SEED.exo_tx);
+let exoTx         = SEED.exo_tx.map(t => ({...t}));
+try { const savedExo = JSON.parse(localStorage.getItem('exo_tx')); if (savedExo && savedExo.length > SEED.exo_tx.length) exoTx = savedExo; } catch(e) {}
 let revData       = load('rev_data',SEED.rev_data);
 
 // ─── NAVIGATION ──────────────────────────────
@@ -1220,8 +1226,8 @@ function switchTab(name, btn) {
   if (name === 'accueil') renderAccueil();
   else if (name === 'epargne') { if($('ep-year-sel')) buildYearOptions('ep-year-sel', 2025); renderEpargne(); }
   else if (name === 'credits') { if($('cr-year-sel')) buildYearOptions('cr-year-sel', 2025, 2050); renderCredits(); }
-  else if (name === 'bourse') { renderBoursePort(); renderBourseTx(); schedulePriceFetch('bourse'); }
-  else if (name === 'exotique') { renderExoPort(); renderExoTx(); schedulePriceFetch('exotique'); }
+  else if (name === 'bourse') { renderBoursePort(); renderBourseTx(); fetchAllPrices('bourse'); }
+  else if (name === 'exotique') { renderExoPort(); renderExoTx(); fetchAllPrices('exotique'); }
   else if (name === 'revenus') renderRevenus();
 }
 
@@ -1398,7 +1404,7 @@ function renderAccueil() {
   const grandTotal = bourseTotal + exoTotal + coupleVal + persoVal;
   $('home-total').textContent = fmt(grandTotal, 2);
   // Auto-fetch prices after short delay on startup
-  setTimeout(() => schedulePriceFetch('all'), 500);
+  // Prices fetched when tabs open
 }
 
 // ─── ÉPARGNE ─────────────────────────────────
@@ -1841,7 +1847,7 @@ function renderExoPort() {
       <td>${vol.toFixed(6)}</td>
       <td>${cout>0?fmt(cout,2):'—'}</td>
       <td>${pmu_exo>0?fmt(pmu_exo,2):'⏳'}</td>
-      <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'…'}</td>
+      <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'⏳'}</td>
       <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
       <td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">🗑</button></td>
     </tr>`;
@@ -2594,6 +2600,13 @@ function init() {
   if ($('exo-add-month')) buildMonthOptions('exo-add-month', 2025);
   buildMonthOptions('rv-add-month', 2020);
   buildYearOptions('rev-year-sel', 2020);
+
+  // Show/hide abondement field based on support
+  const boSupport = $('bo-tx-support');
+  if (boSupport) boSupport.addEventListener('change', () => {
+    const wrap = $('bo-tx-abond-wrap');
+    if (wrap) wrap.style.display = boSupport.value === 'PERCO' ? '' : 'none';
+  });
 
   // Set today's date in tx forms
   const today = new Date().toISOString().split('T')[0];
