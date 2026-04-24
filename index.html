@@ -1597,7 +1597,8 @@ function renderBoursePort() {
     totalCout += cout;
     totalVal  += val;
     const isPerco = (p.support||'').toUpperCase() === 'PERCO';
-    const valCell = isPerco
+    const hasLivePrice = stored_b.pricePerUnit > 0;
+    const valCell = (isPerco && !hasLivePrice)
       ? `<span class="cell-wrap"><input class="cell-input" style="width:68px" type="number" inputmode="decimal" value="${val||''}" placeholder="—" step="0.01" onchange="updateBourseValeur(${i}, this.value)"><span class="cell-euro">€</span></span>`
       : `<span>${val>0?fmt(val,2):'⏳'}</span>`;
     rows += `<tr>
@@ -2128,6 +2129,50 @@ async function fetchBTC() {
   return null;
 }
 
+// ── LesEchos for PERCO (Avenir Actions Monde) ──
+async function fetchLesEchos(isin) {
+  // Try LesEchos internal API
+  const urls = [
+    `https://investir.lesechos.fr/api/instrument/${isin}/quote`,
+    `https://investir.lesechos.fr/api/v1/instruments/${isin}`,
+    `https://investir.lesechos.fr/cours/opcvm/avenir-actions-monde-i-${isin.toLowerCase()}`,
+  ];
+  for (const url of urls) {
+    try {
+      const text = await fetchViaProxy(url);
+      if (!text) continue;
+      // Try JSON parse first
+      try {
+        const d = JSON.parse(text);
+        const price = d?.lastPrice ?? d?.close ?? d?.price ?? d?.nav ?? d?.value
+          ?? d?.data?.lastPrice ?? d?.data?.close ?? d?.data?.nav;
+        if (price && parseFloat(price) > 0) {
+          console.log('LesEchos OK', isin, price);
+          return parseFloat(price);
+        }
+        console.log('LesEchos JSON no price:', JSON.stringify(d).substring(0, 200));
+      } catch(e) {
+        // Try HTML extraction
+        const patterns = [
+          /class="[^"]*cours[^"]*"[^>]*>([0-9]+[,\.][0-9]+)/i,
+          /"lastPrice"\s*:\s*([0-9]+\.?[0-9]*)/,
+          /"close"\s*:\s*([0-9]+\.?[0-9]*)/,
+          /"nav"\s*:\s*([0-9]+\.?[0-9]*)/,
+          /([0-9]+,[0-9]+)\s*€/,
+        ];
+        for (const pat of patterns) {
+          const m = text.match(pat);
+          if (m) {
+            const price = parseFloat(m[1].replace(',', '.'));
+            if (price > 0) { console.log('LesEchos HTML', isin, price); return price; }
+          }
+        }
+      }
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
 // ── Gold price for PPFB fallback ──
 async function fetchGold() {
   try {
@@ -2209,6 +2254,10 @@ async function fetchPrice(ticker, nom) {
   try {
     if (tk === 'BTC') {
       price = await fetchBTC();
+    } else if (nom && nom.toLowerCase().includes('avenir')) {
+      // PERCO: Avenir Actions Monde — Yahoo Finance first (more reliable), LesEchos backup
+      price = await fetchYahoo('0P0000VQ4Q.F');
+      if (!price) price = await fetchLesEchos('QS0004086003');
     } else if (tk === 'PPFB') {
       // Try Boursorama first, then JustETF, then gold estimate
       price = await fetchBoursorama('1uIGLN.L');
@@ -2234,7 +2283,7 @@ async function fetchPrice(ticker, nom) {
 // ── Fetch ALL prices in parallel (non-blocking) ──
 async function fetchAllPrices(type) {
   const bourseTickers = type !== 'exotique'
-    ? computePortfolioFromTx(bourseTx).filter(p => p.ticker && p.support?.toUpperCase() !== 'PERCO')
+    ? computePortfolioFromTx(bourseTx).filter(p => p.ticker || (p.nom && p.nom.toLowerCase().includes('avenir')))
     : [];
   const exoTickers = type !== 'bourse'
     ? computeExoPortfolioFromTx().filter(p => p.ticker)
@@ -2311,6 +2360,8 @@ async function debugPrices() {
     const text = await fetchViaProxy(url);
     log(label+': '+(text ? text.substring(0,100) : 'FAIL'));
   }
+  await testUrl('LesEchos API', 'https://investir.lesechos.fr/api/instrument/QS0004086003/quote');
+  await testUrl('LesEchos page', 'https://investir.lesechos.fr/cours/opcvm/avenir-actions-monde-i-qs0004086003');
   log('--- Fin ---');
 }
 
@@ -2410,6 +2461,8 @@ async function debugPrices() {
   await testUrl('Yahoo WPEA.PA', 'https://query2.finance.yahoo.com/v8/finance/chart/WPEA.PA?interval=1d&range=1d');
   await testUrl('Boursorama IGLN', 'https://www.boursorama.com/bourse/action/graph/ws/GetTicksEOD?symbol=1uIGLN.L&length=1&adjusted=1&periode=0');
   await testUrl('Blackrock PPFB', 'https://www.blackrock.com/fr/intermediaries/products/258441/ishares-physical-gold-etc-fund');
+  await testUrl('LesEchos API', 'https://investir.lesechos.fr/api/instrument/QS0004086003/quote');
+  await testUrl('LesEchos page', 'https://investir.lesechos.fr/cours/opcvm/avenir-actions-monde-i-qs0004086003');
   log('--- Fin ---');
 }
 
