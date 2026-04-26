@@ -2595,17 +2595,6 @@ function forceReload() {
   const url = window.location.href.split('?')[0] + '?v=' + Date.now();
   window.location.replace(url);
 }
-function confirmReset() {
-  if (confirm('Effacer TOUTES les données ? Cette action est irréversible.')) {
-    ['ep_data','cr_data','bo_perf','bo_pos','bo_tx','exo_perf','exo_pos','exo_tx','rev_data']
-      .forEach(k => localStorage.removeItem(k));
-    epargneData = {}; creditData = {}; boursePerf = {};
-    boursePos   = []; bourseTx   = []; exoPerf    = {};
-    exoPos      = []; exoTx      = []; revData    = {};
-    renderAccueil();
-    showSettingsMsg('✓ Données effacées.');
-  }
-}
 
 function showSettingsMsg(msg) {
   const el = $('settings-msg');
@@ -2722,10 +2711,7 @@ document.addEventListener('DOMContentLoaded', init);
     </button>
     <div id="debug-output" style="font-size:11px;font-family:monospace;color:var(--text2);margin-top:8px;word-break:break-all;display:none"></div>
 
-    <div class="section-title">Danger zone</div>
-    <button class="btn danger" onclick="confirmReset()">
-      🗑 &nbsp;Effacer toutes les données
-    </button>
+
 
     <div id="settings-msg" style="margin-top:14px;font-size:13px;color:var(--green);text-align:center;display:none"></div>
   </div>
