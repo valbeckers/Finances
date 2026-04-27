@@ -533,13 +533,12 @@ BOURSE
 <th>PMU</th>
 <th>Val. actu. tot.</th>
 <th>Delta</th>
-<th></th>
 </tr>
 </thead>
 <tbody id="bourse-port-tbody"></tbody>
 <tfoot>
 <tr>
-<td colspan="5">TOTAL</td>
+<td colspan="4">TOTAL</td>
 <td id="bourse-port-cout">—</td>
 <td></td>
 <td id="bourse-port-val">—</td>
@@ -616,13 +615,12 @@ EXOTIQUE
 <th>PMU</th>
 <th>Val. actu. tot.</th>
 <th>Delta</th>
-<th></th>
 </tr>
 </thead>
 <tbody id="exo-port-tbody"></tbody>
 <tfoot>
 <tr>
-<td colspan="5">TOTAL</td>
+<td colspan="4">TOTAL</td>
 <td id="exo-port-cout">—</td>
 <td></td>
 <td id="exo-port-val">—</td>
@@ -1637,7 +1635,6 @@ rows += `<tr>
 <td>${pmu>0?fmt(pmu,2):'⏳'}</td>
 <td><span>${val>0?fmt(val,2):'⏳'}</span></td>
 <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
-<td><button onclick="deleteBoursePos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">&#x1F5D1;</button></td>
 </tr>`;
 });
 if (!rows) rows = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
@@ -1851,7 +1848,6 @@ rows += `<tr>
 <td>${pmu_exo>0?fmt(pmu_exo,2):'⏳'}</td>
 <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'⏳'}</td>
 <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
-<td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">&#x1F5D1;</button></td>
 </tr>`;
 });
 if (!rows) rows = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
