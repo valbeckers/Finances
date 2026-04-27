@@ -400,28 +400,28 @@ ACCUEIL
 </div>
 
 <!-- ÉPARGNE PERSO -->
-<div class="section-title" style="color:var(--c-epargne)">�� Épargne personnelle</div>
+<div class="section-title" style="color:var(--c-epargne)">&#x1F4B0; Épargne personnelle</div>
 <div class="card" style="border-color:var(--c-epargne)">
 <div class="card-amount" style="color:var(--c-epargne)" id="home-ep-perso-val">—</div>
 <div id="home-ep-perso-rows"></div>
 </div>
 
 <!-- ÉPARGNE COUPLE -->
-<div class="section-title" style="color:var(--c-epargne)">�� Épargne couple</div>
+<div class="section-title" style="color:var(--c-epargne)">&#x1F46B; Épargne couple</div>
 <div class="card" style="border-color:var(--c-epargne)">
 <div class="card-amount" style="color:var(--c-epargne)" id="home-ep-couple-val">—</div>
 <div id="home-ep-couple-rows"></div>
 </div>
 
 <!-- BOURSE -->
-<div class="section-title" style="color:var(--c-bourse)">�� Bourse</div>
+<div class="section-title" style="color:var(--c-bourse)">&#x1F4C8; Bourse</div>
 <div class="card" style="border-color:var(--c-bourse)" id="home-bourse-card">
 <div class="card-amount" style="color:var(--c-bourse)" id="home-bourse-val">—</div>
 <div id="home-bourse-rows"></div>
 </div>
 
 <!-- EXOTIQUE -->
-<div class="section-title" style="color:var(--c-exotique)">₿ Exotique</div>
+<div class="section-title" style="color:var(--c-exotique)">&#x20BF; Exotique</div>
 <div class="card" style="border-color:var(--c-exotique)" id="home-exo-card">
 <div class="card-amount" style="color:var(--c-exotique)" id="home-exo-val">—</div>
 <div id="home-exo-rows"></div>
@@ -516,7 +516,7 @@ BOURSE
 <div class="flex-row" style="margin-bottom:12px">
 <div class="page-subtitle">Positions actuelles</div>
 <div style="display:flex;gap:8px">
-<button class="btn-icon" id="bo-refresh-btn" onclick="schedulePriceFetch('bourse')" title="Actualiser les prix">↻</button>
+<button class="btn-icon" id="bo-refresh-btn" onclick="schedulePriceFetch('bourse')" title="Actualiser les prix">&#x21BB;</button>
 <button class="btn-icon" onclick="openModal('modal-bourse-pos')">＋</button>
 </div>
 </div>
@@ -599,7 +599,7 @@ EXOTIQUE
 <div class="flex-row" style="margin-bottom:12px">
 <div class="page-subtitle">Positions actuelles</div>
 <div style="display:flex;gap:8px">
-<button class="btn-icon" id="exo-refresh-btn" onclick="schedulePriceFetch('exotique')" title="Actualiser les prix">↻</button>
+<button class="btn-icon" id="exo-refresh-btn" onclick="schedulePriceFetch('exotique')" title="Actualiser les prix">&#x21BB;</button>
 <button class="btn-icon" onclick="openModal('modal-exo-pos')">＋</button>
 </div>
 </div>
@@ -674,7 +674,7 @@ REVENUS
 </div>
 
 <div class="section-title">Détail mensuel</div>
-<div class="table-wrap">
+<div class="table-wrap" style="touch-action:pan-y">
 <table>
 <thead>
 <tr>
@@ -924,7 +924,7 @@ MODALS
 <div class="modal-handle"></div>
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
 <div class="modal-title" style="margin-bottom:0">Nouvelle transaction</div>
-<button onclick="closeModal('modal-bourse-tx')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">✕</button>
+<button onclick="closeModal('modal-bourse-tx')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">&#x2715;</button>
 </div>
 <div class="form-grid">
 <div class="form-group" style="max-width:160px">
@@ -1056,7 +1056,7 @@ MODALS
 <div class="modal-handle"></div>
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
 <div class="modal-title" style="margin-bottom:0">Nouvelle transaction</div>
-<button onclick="closeModal('modal-exo-tx')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">✕</button>
+<button onclick="closeModal('modal-exo-tx')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">&#x2715;</button>
 </div>
 <div class="form-grid">
 <div class="form-group" style="max-width:160px">
@@ -1165,8 +1165,9 @@ return sign + n.toFixed(2) + '%';
 }
 function fmtDelta(n) {
 if (!n && n !== 0) return '—';
+const arrow = n >= 0 ? '▲ ' : '▼ ';
 const sign = n >= 0 ? '+' : '';
-return sign + fmt(n, 2);
+return arrow + sign + fmt(n, 2);
 }
 function monthKey(y, m) { return `${y}-${String(m+1).padStart(2,'0')}`; }
 function monthLabel(k) {
@@ -1636,7 +1637,7 @@ rows += `<tr>
 <td>${pmu>0?fmt(pmu,2):'⏳'}</td>
 <td><span>${val>0?fmt(val,2):'⏳'}</span></td>
 <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
-<td><button onclick="deleteBoursePos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">��</button></td>
+<td><button onclick="deleteBoursePos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">&#x1F5D1;</button></td>
 </tr>`;
 });
 if (!rows) rows = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
@@ -1690,8 +1691,8 @@ rows += `<tr>
 <td>${fmt(parseFloat(t.montant)||0,2)}</td>
 <td>${t.abondement>0?'+ '+parseFloat(t.abondement).toFixed(4)+' (abond.)':''}</td>
 <td style="white-space:nowrap">
-<button onclick="editBourseTx(${t._idx})" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:14px;padding:2px 4px">✏️</button>
-<button onclick="deleteBourseTx(${t._idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">��</button>
+<button onclick="editBourseTx(${t._idx})" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:14px;padding:2px 4px">&#x270F;️</button>
+<button onclick="deleteBourseTx(${t._idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">&#x1F5D1;</button>
 </td>
 </tr>`;
 });
@@ -1850,7 +1851,7 @@ rows += `<tr>
 <td>${pmu_exo>0?fmt(pmu_exo,2):'⏳'}</td>
 <td id="exo-valcell-${i}" class="${val>0?'':'loading-cell'}">${val>0?fmt(val,2):'⏳'}</td>
 <td class="${delta!==null?(delta>=0?'td-green':'td-red'):''}">${delta!==null?fmtDelta(delta):'—'}</td>
-<td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">��</button></td>
+<td><button onclick="deleteExoPos(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">&#x1F5D1;</button></td>
 </tr>`;
 });
 if (!rows) rows = '<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">Aucune position · Ajoutez des transactions</td></tr>';
@@ -1896,8 +1897,8 @@ rows += `<tr>
 <td>${parseFloat(t.vol||0).toFixed(6)}</td>
 <td>${fmt(parseFloat(t.montant)||0,2)}</td>
 <td style="white-space:nowrap">
-<button onclick="editExoTx(${t._idx})" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:14px;padding:2px 4px">✏️</button>
-<button onclick="deleteExoTx(${t._idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">��</button>
+<button onclick="editExoTx(${t._idx})" style="background:none;border:none;color:var(--accent2);cursor:pointer;font-size:14px;padding:2px 4px">&#x270F;️</button>
+<button onclick="deleteExoTx(${t._idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:2px 4px">&#x1F5D1;</button>
 </td>
 </tr>`;
 });
@@ -2432,7 +2433,7 @@ const r = await fetch(proxy, {signal: makeAbortSignal(5000)});
 const t = await r.text();
 const d = JSON.parse(t);
 const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-log(name + ': ' + (price ? '✓ WPEA=' + price + '€' : 'no price'));
+log(name + ': ' + (price ? '&#x2713; WPEA=' + price + '€' : 'no price'));
 } catch(e) { log(name + ': ' + e.message); }
 }
 
@@ -2443,7 +2444,7 @@ for (const [label, sym] of [
 ['PPFB.DE', 'PPFB.DE'], ['IGLN.L', 'IGLN.L'],
 ]) {
 const price = await fetchYahoo(sym);
-log(label + ' (' + sym + '): ' + (price ? '✓ ' + price + '€' : 'FAIL'));
+log(label + ' (' + sym + '): ' + (price ? '&#x2713; ' + price + '€' : 'FAIL'));
 }
 log('--- Fin ---');
 }
@@ -2498,7 +2499,7 @@ rev_data: revData,
 const txt = JSON.stringify(payload, null, 2);
 if (navigator.clipboard && navigator.clipboard.writeText) {
 navigator.clipboard.writeText(txt).then(() => {
-showSettingsMsg('✓ Données copiées dans le presse-papier !');
+showSettingsMsg('&#x2713; Données copiées dans le presse-papier !');
 }).catch(() => fallbackCopy(txt));
 } else {
 fallbackCopy(txt);
@@ -2513,9 +2514,9 @@ document.body.appendChild(ta);
 ta.select(); ta.setSelectionRange(0, 999999);
 try {
 document.execCommand('copy');
-showSettingsMsg('✓ Données copiées !');
+showSettingsMsg('&#x2713; Données copiées !');
 } catch(e) {
-showSettingsMsg('✗ Copie impossible, essayez un autre navigateur.');
+showSettingsMsg('&#x2717; Copie impossible, essayez un autre navigateur.');
 }
 document.body.removeChild(ta);
 }
@@ -2543,9 +2544,9 @@ if (d.rev_data) { revData = d.rev_data; save('rev_data', revData); }
 $('import-text').value = '';
 $('import-box').style.display = 'none';
 renderAccueil();
-showSettingsMsg('✓ Import réussi ! Données chargées.');
+showSettingsMsg('&#x2713; Import réussi ! Données chargées.');
 } catch(err) {
-showSettingsMsg('✗ Erreur : données invalides.');
+showSettingsMsg('&#x2717; Erreur : données invalides.');
 }
 }
 
@@ -2597,7 +2598,7 @@ function showSettingsMsg(msg) {
 const el = $('settings-msg');
 el.textContent = msg;
 el.style.display = 'block';
-el.style.color = msg.startsWith('✗') ? 'var(--red)' : 'var(--green)';
+el.style.color = msg.startsWith('&#x2717;') ? 'var(--red)' : 'var(--green)';
 setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
 
@@ -2680,18 +2681,18 @@ document.addEventListener('DOMContentLoaded', init);
 <div class="modal">
 <div class="modal-handle"></div>
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-<div class="modal-title" style="margin-bottom:0">⚙️ Réglages</div>
-<button onclick="closeModal('modal-settings')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">✕</button>
+<div class="modal-title" style="margin-bottom:0">&#x2699;&#xFE0F; Réglages</div>
+<button onclick="closeModal('modal-settings')" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1">&#x2715;</button>
 </div>
 
 <div class="section-title" style="margin-top:0">Données</div>
 
 <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
 <button class="btn" onclick="exportData()">
-�� &nbsp;Copier mes données (presse-papier)
+&#x1F4CB; &nbsp;Copier mes données (presse-papier)
 </button>
 <button class="btn secondary" onclick="openImportBox()">
-�� &nbsp;Importer des données (coller)
+&#x1F4E5; &nbsp;Importer des données (coller)
 </button>
 <div id="import-box" style="display:none;margin-top:8px">
 <textarea id="import-text" placeholder="Colle tes données ici..." style="width:100%;height:100px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Inter',sans-serif;font-size:11px;border-radius:8px;padding:10px;resize:none"></textarea>
@@ -2701,10 +2702,10 @@ document.addEventListener('DOMContentLoaded', init);
 
 <div class="section-title">Application</div>
 <button class="btn secondary" style="margin-bottom:10px" onclick="forceReload()">
-�� &nbsp;Forcer le rechargement de l'app
+&#x1F501; &nbsp;Forcer le rechargement de l'app
 </button>
 <button class="btn secondary" style="margin-bottom:10px" onclick="debugPrices()">
-�� &nbsp;Tester les prix (debug)
+&#x1F50D; &nbsp;Tester les prix (debug)
 </button>
 <div id="debug-output" style="font-size:11px;font-family:monospace;color:var(--text2);margin-top:8px;word-break:break-all;display:none"></div>
 
