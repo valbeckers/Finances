@@ -370,6 +370,17 @@
   /* ── LOADING CELL ── */
   .loading-cell { color: var(--text3) !important; opacity: 0.5; }
 
+
+  .rev-table th:first-child,
+  .rev-table td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--bg3);
+    z-index: 2;
+    white-space: nowrap;
+  }
+  .rev-table thead th:first-child { background: var(--bg2); }
+
   /* ── SCROLLBAR ── */
   #content::-webkit-scrollbar { width: 0; }
 </style>
@@ -675,15 +686,15 @@
 
     <div class="section-title">Détail mensuel</div>
     <div class="table-wrap">
-      <table>
+      <table class="rev-table">
         <thead>
           <tr>
             <th>Mois</th>
             <th>Brut</th>
-            <th>Net av. imp.</th>
+            <th>Net brut</th>
             <th>Impôts</th>
             <th>Net net (=)</th>
-            <th>Tickets R.</th>
+            <th>Tickets</th>
             <th>Autre</th>
           </tr>
         </thead>
@@ -704,7 +715,7 @@
 
     <div class="section-title">Récapitulatif annuel</div>
     <div class="table-wrap">
-      <table>
+      <table class="rev-table">
         <thead>
           <tr>
             <th>Année</th>
