@@ -703,7 +703,7 @@
     </div>
 
     <div class="section-title">Récapitulatif annuel</div>
-    <div class="table-wrap">
+    <div class="table-wrap" style="touch-action:pan-y">
       <table>
         <thead>
           <tr>
@@ -3371,10 +3371,10 @@ function renderEpargne() {
     annualRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
       <td id="ep-tot-${k}" style="color:${tot>0?'var(--green)':'var(--text3)'}">${tot>0?fmt(Math.round(tot),0):'—'}</td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="antid" type="number" value="${d.antid||''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="antid" type="number" value="${d.antid ? parseFloat(d.antid).toFixed(2) : ''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="prec"  type="number" value="${d.prec||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="secu"  type="number" value="${d.secu||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vcelia" type="number" value="${d.vcelia||''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vcelia" type="number" value="${d.vcelia ? parseFloat(d.vcelia).toFixed(2) : ''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vval"  type="number" value="${d.vval||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
       <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vac"   type="number" value="${d.vac||''}"   placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
     </tr>`;
@@ -3415,9 +3415,9 @@ function renderCredits() {
     hRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
       <td class="${tot>0?'td-red':''}" id="cr-tot-${k}">${tot>0?fmt(Math.round(tot),0):'—'}</td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="sandra"  type="number" value="${d.sandra||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="polt"    type="number" value="${d.polt||''}"    placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="schmidt" type="number" value="${d.schmidt||''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="sandra"  type="number" value="${d.sandra ? parseFloat(d.sandra).toFixed(2) : ''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="polt"    type="number" value="${d.polt ? parseFloat(d.polt).toFixed(2) : ''}"    placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="schmidt" type="number" value="${d.schmidt ? parseFloat(d.schmidt).toFixed(2) : ''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
       <td class="td-red">${parseFloat(d.immo)>0?fmt(parseFloat(d.immo),2):'—'}</td>
       <td class="td-red">${parseFloat(d.immo2)>0?fmt(parseFloat(d.immo2),2):'—'}</td>
     </tr>`;
