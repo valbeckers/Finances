@@ -969,7 +969,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Montant total (€)</label>
-        <input type="number" id="bo-tx-montant" placeholder="0.00" step="0.01" inputmode="decimal" pattern="[0-9]*">
+        <input type="number" id="bo-tx-montant" placeholder="0.00" step="0.01" inputmode="decimal">
       </div>
       <div class="form-group" id="bo-tx-abond-wrap" style="display:none">
         <label>Abondement (parts)</label>
@@ -3373,12 +3373,12 @@ function renderEpargne() {
     annualRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
       <td id="ep-tot-${k}" style="color:${tot>0?'var(--green)':'var(--text3)'}">${tot>0?fmt(Math.round(tot),0):'—'}</td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="antid" type="number" value="${d.antid ? parseFloat(d.antid).toFixed(2) : ''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="prec"  type="number" value="${d.prec ? parseFloat(d.prec).toFixed(2) : ''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="secu"  type="number" value="${d.secu ? parseFloat(d.secu).toFixed(2) : ''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vcelia" type="number" value="${d.vcelia ? parseFloat(d.vcelia).toFixed(2) : ''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vval"  type="number" value="${d.vval ? parseFloat(d.vval).toFixed(2) : ''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vac"   type="number" value="${d.vac ? parseFloat(d.vac).toFixed(2) : ''}"   placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="antid" type="text" inputmode="decimal" value="${d.antid ? parseFloat(d.antid).toFixed(2).replace('.', ',') : ''}" placeholder="—" step="0.01" inputmode="decimal" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="prec"  type="text" inputmode="decimal" value="${d.prec ? parseFloat(d.prec).toFixed(2).replace('.', ',') : ''}"  placeholder="—" step="0.01" inputmode="decimal" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="secu"  type="text" inputmode="decimal" value="${d.secu ? parseFloat(d.secu).toFixed(2).replace('.', ',') : ''}"  placeholder="—" step="0.01" inputmode="decimal" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vcelia" type="text" inputmode="decimal" value="${d.vcelia ? parseFloat(d.vcelia).toFixed(2).replace('.', ',') : ''}" placeholder="—" step="0.01" inputmode="decimal" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vval"  type="text" inputmode="decimal" value="${d.vval ? parseFloat(d.vval).toFixed(2).replace('.', ',') : ''}"  placeholder="—" step="0.01" inputmode="decimal" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="vac"   type="text" inputmode="decimal" value="${d.vac ? parseFloat(d.vac).toFixed(2).replace('.', ',') : ''}"   placeholder="—" step="0.01" inputmode="decimal" onchange="saveEpargneCell(this)"><span class="cell-euro">€</span></span></td>
     </tr>`;
   }
   $('ep-annual-tbody').innerHTML = annualRows;
@@ -3388,7 +3388,7 @@ function saveEpargneCell(input) {
   const k   = input.dataset.month;
   const key = input.dataset.key;
   if (!epargneData[k]) epargneData[k] = {};
-  epargneData[k][key] = input.value;
+  epargneData[k][key] = input.value.replace(',', '.');
   save('ep_data', epargneData);
   // Update row total
   const d = epargneData[k];
@@ -3417,9 +3417,9 @@ function renderCredits() {
     hRows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
       <td class="${tot>0?'td-red':''}" id="cr-tot-${k}">${tot>0?fmt(Math.round(tot),0):'—'}</td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="sandra"  type="number" value="${d.sandra ? parseFloat(d.sandra).toFixed(2) : ''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="polt"    type="number" value="${d.polt ? parseFloat(d.polt).toFixed(2) : ''}"    placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="schmidt" type="number" value="${d.schmidt ? parseFloat(d.schmidt).toFixed(2) : ''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="sandra"  type="text" inputmode="decimal" value="${d.sandra ? parseFloat(d.sandra).toFixed(2).replace('.', ',') : ''}"  placeholder="—" step="0.01" inputmode="decimal" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="polt"    type="text" inputmode="decimal" value="${d.polt ? parseFloat(d.polt).toFixed(2).replace('.', ',') : ''}"    placeholder="—" step="0.01" inputmode="decimal" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="schmidt" type="text" inputmode="decimal" value="${d.schmidt ? parseFloat(d.schmidt).toFixed(2).replace('.', ',') : ''}" placeholder="—" step="0.01" inputmode="decimal" onchange="saveCreditCell(this)"><span class="cell-euro">€</span></span></td>
       <td class="td-red">${parseFloat(d.immo)>0?fmt(parseFloat(d.immo),2):'—'}</td>
       <td class="td-red">${parseFloat(d.immo2)>0?fmt(parseFloat(d.immo2),2):'—'}</td>
     </tr>`;
@@ -3431,7 +3431,7 @@ function saveCreditCell(input) {
   const k   = input.dataset.month;
   const key = input.dataset.key;
   if (!creditData[k]) creditData[k] = {};
-  creditData[k][key] = input.value;
+  creditData[k][key] = input.value.replace(',', '.');
   save('cr_data', creditData);
   const d = creditData[k];
   const tot = ['sandra','polt','schmidt'].reduce((s,kk)=>s+(parseFloat(d[kk])||0),0);
@@ -3921,12 +3921,12 @@ function renderRevenus() {
 
     rows += `<tr>
       <td style="font-family:'Inter',sans-serif">${MONTHS_SHORT[m]}</td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="brut"  type="number" value="${d.brut||''}"  placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="nav"   type="number" value="${d.nav||''}"   placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="imp"   type="number" value="${d.imp||''}"   placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="brut"  type="text" inputmode="decimal" value="${d.brut ? parseFloat(d.brut).toFixed(2).replace('.', ',') : ''}"  placeholder="—" step="0.01" inputmode="decimal" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="nav"   type="text" inputmode="decimal" value="${d.nav ? parseFloat(d.nav).toFixed(2).replace('.', ',') : ''}"   placeholder="—" step="0.01" inputmode="decimal" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="imp"   type="text" inputmode="decimal" value="${d.imp ? parseFloat(d.imp).toFixed(2).replace('.', ',') : ''}"   placeholder="—" step="0.01" inputmode="decimal" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
       <td class="td-green" id="rev-nn-${k}" style="font-size:12px">${calcNN(d)}</td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="tr"    type="number" value="${d.tr||''}"    placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
-      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="autre" type="number" value="${d.autre||''}" placeholder="—" step="0.01" inputmode="decimal" pattern="[0-9]*" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="tr"    type="text" inputmode="decimal" value="${d.tr ? parseFloat(d.tr).toFixed(2).replace('.', ',') : ''}"    placeholder="—" step="0.01" inputmode="decimal" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
+      <td><span class="cell-wrap"><input class="cell-input" data-month="${k}" data-key="autre" type="text" inputmode="decimal" value="${d.autre ? parseFloat(d.autre).toFixed(2).replace('.', ',') : ''}" placeholder="—" step="0.01" inputmode="decimal" onchange="saveRevenuCell(this)"><span class="cell-euro">€</span></span></td>
     </tr>`;
   }
   $('rev-tbody').innerHTML = rows;
@@ -4626,20 +4626,25 @@ document.addEventListener('focusin', e => {
 })();
 
 
-// ── Format inputs to 2 decimal places on blur ──
+// ── Format inputs: accept comma, display with comma, 2 decimals ──
 document.addEventListener('focusout', e => {
   const input = e.target;
-  if (input.classList.contains('cell-input') && input.type === 'number') {
-    const val = parseFloat(input.value);
+  if (input.classList.contains('cell-input')) {
+    // Accept comma as decimal separator
+    const raw = input.value.replace(',', '.');
+    const val = parseFloat(raw);
     if (!isNaN(val)) {
-      // Store the formatted value back (the input still sends raw value to save functions)
-      input.setAttribute('data-formatted', val.toFixed(2));
-      // Use display trick: show formatted in a sibling span if we can
-      // Actually just update the value directly
-      input.value = val.toFixed(2);
+      input.value = val.toFixed(2).replace('.', ',');
+      // Store dot-version in dataset for save functions
+      input.dataset.numval = val.toFixed(2);
     }
   }
 });
+
+// Intercept comma → dot before save functions read the value
+function getInputVal(input) {
+  return (input.value || '').replace(',', '.');
+}
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
