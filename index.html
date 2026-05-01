@@ -1214,7 +1214,7 @@ const SEED = {
     "2026-04": {
       "antid": "200",
       "prec": "10",
-      "secu": "39.53",
+      "secu": "24.26",
       "vcelia": "10",
       "vval": "0",
       "vac": "0"
@@ -4624,6 +4624,22 @@ document.addEventListener('focusin', e => {
     if (echanged) localStorage.setItem('exo_pos', JSON.stringify(epos));
   } catch(e) {}
 })();
+
+
+// ── Format inputs to 2 decimal places on blur ──
+document.addEventListener('focusout', e => {
+  const input = e.target;
+  if (input.classList.contains('cell-input') && input.type === 'number') {
+    const val = parseFloat(input.value);
+    if (!isNaN(val)) {
+      // Store the formatted value back (the input still sends raw value to save functions)
+      input.setAttribute('data-formatted', val.toFixed(2));
+      // Use display trick: show formatted in a sibling span if we can
+      // Actually just update the value directly
+      input.value = val.toFixed(2);
+    }
+  }
+});
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
