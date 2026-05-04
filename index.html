@@ -554,7 +554,7 @@ BOURSE
 
 <!-- HISTORIQUE TRANSACTIONS -->
 <div id="bourse-hist" style="display:none">
-<button class="btn" style="margin-bottom:16px;width:100%" onclick="openModal('modal-bourse-tx')">+ Nouvelle transaction</button>
+<button class="btn" style="margin-bottom:16px;width:100%" onclick="populateBoTitreDropdown(); openModal('modal-bourse-tx')">+ Nouvelle transaction</button>
 <div class="table-wrap">
 <table>
 <thead>
@@ -944,6 +944,12 @@ MODALS
 </div>
 <div class="form-group">
 <label>Titre</label>
+<select id="bo-tx-nom-sel" onchange="onBoTitreChange(this)">
+<option value="">— Choisir —</option>
+</select>
+</div>
+<div class="form-group" id="bo-tx-nom-new-wrap" style="display:none">
+<label>Nom du titre</label>
 <input type="text" id="bo-tx-nom" placeholder="Nom du titre">
 </div>
 <div class="form-group">
@@ -3522,13 +3528,14 @@ function computePortfolioFromTx(txList) {
 const positions = {};
 const sorted = [...txList].sort((a,b) => a.date.localeCompare(b.date));
 sorted.forEach(tx => {
-const nom = tx.nom || tx.ticker;
-if (!positions[nom]) positions[nom] = {
+// Group by ticker first (if available), then by nom — prevents duplicate positions
+const key = (tx.ticker && tx.ticker.trim()) ? tx.ticker.trim().toUpperCase() : (tx.nom || '').trim();
+if (!positions[key]) positions[key] = {
 nom: tx.nom, ticker: tx.ticker, isin: tx.isin||'',
 support: tx.support||'', type: tx.type||'',
 qty: 0, cost: 0, valeur: 0, ownQty: 0, abondTotal: 0
 };
-const p = positions[nom];
+const p = positions[key];
 const v = parseFloat(tx.vol)||0;
 const prix = parseFloat(tx.pru)||0;
 if (tx.op === 'Achat') {
@@ -3665,6 +3672,9 @@ $('bo-tx-pru').value = t.pru;
 $('bo-tx-vol').value = t.vol;
 $('bo-tx-montant').value = t.montant ? parseFloat(t.montant).toFixed(2).replace('.', ',') : '';
 $('bo-tx-edit-idx').value = idx;
+populateBoTitreDropdown(); populateBoTitreDropdown();
+const nomSel = $('bo-tx-nom-sel');
+if (nomSel) { nomSel.value = t.nom || ''; if (!nomSel.value) { nomSel.value = '__new__'; $('bo-tx-nom-new-wrap').style.display = ''; } }
 openModal('modal-bourse-tx');
 }
 
@@ -3672,7 +3682,7 @@ function saveBourseTx() {
 const tx = {
 date: $('bo-tx-date').value,
 op: $('bo-tx-op').value,
-nom: $('bo-tx-nom').value,
+nom: ($('bo-tx-nom-sel').value && $('bo-tx-nom-sel').value !== '__new__') ? $('bo-tx-nom-sel').value : $('bo-tx-nom').value,
 ticker: $('bo-tx-ticker').value,
 isin: $('bo-tx-isin').value,
 support: $('bo-tx-support')?.value || '',
@@ -3754,7 +3764,7 @@ sorted.forEach(tx => {
 const nom = tx.nom || tx.ticker;
 if (!positions[nom]) positions[nom] = { nom: tx.nom, ticker: tx.ticker, type: tx.type||'Autre', qty: 0, cost: 0 };
 if (tx.type) positions[nom].type = tx.type; // always update type from latest tx
-const p = positions[nom];
+const p = positions[key];
 const v = parseFloat(tx.vol)||0;
 const prix = parseFloat(tx.pru)||0;
 if (tx.op === 'Achat') {
@@ -4442,6 +4452,49 @@ const pru = parseFloat($('exo-tx-pru').value.replace(',', '.')) || 0;
 const vol = parseFloat($('exo-tx-vol').value.replace(',', '.')) || 0;
 if (pru > 0 && vol > 0) {
 $('exo-tx-montant').value = (pru * vol).toFixed(2).replace('.', ',');
+}
+}
+
+
+function populateBoTitreDropdown() {
+const sel = $('bo-tx-nom-sel');
+if (!sel) return;
+const positions = computePortfolioFromTx(bourseTx);
+sel.innerHTML = '<option value="">— Choisir —</option>';
+positions.forEach(p => {
+const opt = document.createElement('option');
+opt.value = p.nom;
+opt.dataset.ticker = p.ticker || '';
+opt.dataset.isin = p.isin || '';
+opt.dataset.support= p.support|| '';
+opt.textContent = p.nom + (p.ticker ? ' (' + p.ticker + ')' : '');
+sel.appendChild(opt);
+});
+const newOpt = document.createElement('option');
+newOpt.value = '__new__';
+newOpt.textContent = '+ Nouveau titre';
+sel.appendChild(newOpt);
+}
+
+function onBoTitreChange(sel) {
+const val = sel.value;
+const wrap = $('bo-tx-nom-new-wrap');
+if (val === '__new__') {
+wrap.style.display = '';
+$('bo-tx-nom').value = '';
+$('bo-tx-ticker').value = '';
+$('bo-tx-isin').value = '';
+} else if (val) {
+wrap.style.display = 'none';
+const opt = sel.options[sel.selectedIndex];
+$('bo-tx-nom').value = val;
+$('bo-tx-ticker').value = opt.dataset.ticker || '';
+$('bo-tx-isin').value = opt.dataset.isin || '';
+const suppSel = $('bo-tx-support');
+if (suppSel && opt.dataset.support) suppSel.value = opt.dataset.support;
+} else {
+wrap.style.display = 'none';
+$('bo-tx-nom').value = '';
 }
 }
 
