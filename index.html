@@ -635,7 +635,7 @@ EXOTIQUE
 </div>
 
 <div id="exo-hist" style="display:none">
-<button class="btn" style="margin-bottom:16px;width:100%" onclick="openModal('modal-exo-tx')">+ Nouvelle transaction</button>
+<button class="btn" style="margin-bottom:16px;width:100%" onclick="populateExoTitreDropdown(); openModal('modal-exo-tx')">+ Nouvelle transaction</button>
 <div class="table-wrap">
 <table>
 <thead>
@@ -1078,6 +1078,12 @@ MODALS
 </div>
 <div class="form-group">
 <label>Actif</label>
+<select id="exo-tx-nom-sel" onchange="onExoTitreChange(this)">
+<option value="">— Choisir —</option>
+</select>
+</div>
+<div class="form-group" id="exo-tx-nom-new-wrap" style="display:none">
+<label>Nom de l'actif</label>
 <input type="text" id="exo-tx-nom" placeholder="ex: Bitcoin">
 </div>
 <div class="form-group">
@@ -3145,11 +3151,11 @@ let boursePerf = load('bo_perf', SEED.bo_perf);
 let boursePos = load('bo_pos', SEED.bo_pos);
 // Always start from SEED for correct names; user can add new tx which get saved
 let bourseTx = SEED.bo_tx.map(t => ({...t}));
-try { const saved = JSON.parse(localStorage.getItem('bo_tx')); if (saved && saved.length >= SEED.bo_tx.length) bourseTx = saved; } catch(e) {}
+try { const saved = JSON.parse(localStorage.getItem('bo_tx')); if (saved && saved.length > 0) bourseTx = saved; } catch(e) {}
 let exoPerf = load('exo_perf',SEED.exo_perf);
 let exoPos = load('exo_pos', SEED.exo_pos);
 let exoTx = SEED.exo_tx.map(t => ({...t}));
-try { const savedExo = JSON.parse(localStorage.getItem('exo_tx')); if (savedExo && savedExo.length >= SEED.exo_tx.length) exoTx = savedExo; } catch(e) {}
+try { const savedExo = JSON.parse(localStorage.getItem('exo_tx')); if (savedExo && savedExo.length > 0) exoTx = savedExo; } catch(e) {}
 let revData = load('rev_data',SEED.rev_data);
 
 // ─── NAVIGATION ──────────────────────────────
@@ -3761,9 +3767,10 @@ function computeExoPortfolioFromTx() {
 const positions = {};
 const sorted = [...exoTx].sort((a,b) => a.date.localeCompare(b.date));
 sorted.forEach(tx => {
-const nom = tx.nom || tx.ticker;
-if (!positions[nom]) positions[nom] = { nom: tx.nom, ticker: tx.ticker, type: tx.type||'Autre', qty: 0, cost: 0 };
-if (tx.type) positions[nom].type = tx.type; // always update type from latest tx
+// Group by ticker (like bourse) to prevent duplicates
+const key = (tx.ticker && tx.ticker.trim()) ? tx.ticker.trim().toUpperCase() : (tx.nom || '').trim();
+if (!positions[key]) positions[key] = { nom: tx.nom, ticker: tx.ticker, type: tx.type||'Autre', qty: 0, cost: 0 };
+if (tx.type) positions[key].type = tx.type;
 const p = positions[key];
 const v = parseFloat(tx.vol)||0;
 const prix = parseFloat(tx.pru)||0;
@@ -3879,6 +3886,9 @@ $('exo-tx-pru').value = t.pru;
 $('exo-tx-vol').value = t.vol;
 $('exo-tx-montant').value = t.montant ? parseFloat(t.montant).toFixed(2).replace('.', ',') : '';
 $('exo-tx-edit-idx').value = idx;
+populateExoTitreDropdown();
+const exoNomSel = $('exo-tx-nom-sel');
+if (exoNomSel) { exoNomSel.value = t.nom || ''; if (!exoNomSel.value) { exoNomSel.value = '__new__'; $('exo-tx-nom-new-wrap').style.display = ''; } }
 openModal('modal-exo-tx');
 }
 
@@ -3886,7 +3896,7 @@ function saveExoTx() {
 const tx = {
 date: $('exo-tx-date').value,
 op: $('exo-tx-op').value,
-nom: $('exo-tx-nom').value,
+nom: ($('exo-tx-nom-sel').value && $('exo-tx-nom-sel').value !== '__new__') ? $('exo-tx-nom-sel').value : $('exo-tx-nom').value,
 ticker: $('exo-tx-ticker').value,
 type: $('exo-tx-type')?.value || '',
 pru: $('exo-tx-pru').value.replace(',', '.'),
@@ -4455,6 +4465,46 @@ $('exo-tx-montant').value = (pru * vol).toFixed(2).replace('.', ',');
 }
 }
 
+
+
+function populateExoTitreDropdown() {
+const sel = $('exo-tx-nom-sel');
+if (!sel) return;
+const positions = computeExoPortfolioFromTx();
+sel.innerHTML = '<option value="">— Choisir —</option>';
+positions.forEach(p => {
+const opt = document.createElement('option');
+opt.value = p.nom;
+opt.dataset.ticker = p.ticker || '';
+opt.dataset.type = p.type || '';
+opt.textContent = p.nom + (p.ticker ? ' (' + p.ticker + ')' : '');
+sel.appendChild(opt);
+});
+const newOpt = document.createElement('option');
+newOpt.value = '__new__';
+newOpt.textContent = '+ Nouveau actif';
+sel.appendChild(newOpt);
+}
+
+function onExoTitreChange(sel) {
+const val = sel.value;
+const wrap = $('exo-tx-nom-new-wrap');
+if (val === '__new__') {
+wrap.style.display = '';
+$('exo-tx-nom').value = '';
+$('exo-tx-ticker').value = '';
+} else if (val) {
+wrap.style.display = 'none';
+const opt = sel.options[sel.selectedIndex];
+$('exo-tx-nom').value = val;
+$('exo-tx-ticker').value = opt.dataset.ticker || '';
+const typeSel = $('exo-tx-type');
+if (typeSel && opt.dataset.type) typeSel.value = opt.dataset.type;
+} else {
+wrap.style.display = 'none';
+$('exo-tx-nom').value = '';
+}
+}
 
 function populateBoTitreDropdown() {
 const sel = $('bo-tx-nom-sel');
