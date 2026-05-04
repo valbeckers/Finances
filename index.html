@@ -3145,11 +3145,11 @@ let boursePerf = load('bo_perf', SEED.bo_perf);
 let boursePos = load('bo_pos', SEED.bo_pos);
 // Always start from SEED for correct names; user can add new tx which get saved
 let bourseTx = SEED.bo_tx.map(t => ({...t}));
-try { const saved = JSON.parse(localStorage.getItem('bo_tx')); if (saved && saved.length > SEED.bo_tx.length) bourseTx = saved; } catch(e) {}
+try { const saved = JSON.parse(localStorage.getItem('bo_tx')); if (saved && saved.length >= SEED.bo_tx.length) bourseTx = saved; } catch(e) {}
 let exoPerf = load('exo_perf',SEED.exo_perf);
 let exoPos = load('exo_pos', SEED.exo_pos);
 let exoTx = SEED.exo_tx.map(t => ({...t}));
-try { const savedExo = JSON.parse(localStorage.getItem('exo_tx')); if (savedExo && savedExo.length > SEED.exo_tx.length) exoTx = savedExo; } catch(e) {}
+try { const savedExo = JSON.parse(localStorage.getItem('exo_tx')); if (savedExo && savedExo.length >= SEED.exo_tx.length) exoTx = savedExo; } catch(e) {}
 let revData = load('rev_data',SEED.rev_data);
 
 // ─── NAVIGATION ──────────────────────────────
@@ -3785,7 +3785,7 @@ const existing = exoPos.find(ep => ep.nom === p.nom || ep.ticker === p.ticker);
 return { ...p, valeur: existing ? (parseFloat(existing.valeur)||0) : 0 };
 });
 exoPos = newPos;
-save('exo_pos', exoPos);
+// Don't save here - pricePerUnit set by API fetch
 
 let totalCout = 0, totalVal = 0;
 let rows = '';
